@@ -33,6 +33,6 @@ set_target_properties(
         LANGUAGES CXX
         LINKER_LANGUAGE CXX
         LINKER_LANGUAGE CXX
-        CXX_STANDARD 14
+        CXX_STANDARD 20
         CXX_STANDARD_REQUIRED ON
         CXX_EXTENSIONS OFF)

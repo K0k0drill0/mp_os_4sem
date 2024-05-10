@@ -1,0 +1,20 @@
+{
+    "omg": 
+    {
+        "my_json" : "fir_json"   
+    },
+    "real_path":
+    {
+        "not_real" : "cont",
+        "client_logger_builder.config": 
+        {
+            "format_string" : "%d %t - [%s] %m",
+            "logger_files":
+            {
+                "for_log1" : ["DEBUG"],
+                "../tests/for_log1" : ["TRACE", "INFO"],
+                "for_log2" : ["DEBUG"]
+            }
+        }
+    }
+}

@@ -130,10 +130,9 @@ client_logger::client_logger(
 
             try {
                 stream = new std::ofstream(file_path);
-
+                // std::cout << file_path << std::endl;
                 if (!stream->is_open()) {
                     throw std::runtime_error("File " + file_path + " can not be opened");
-                    // throw std::runtime_error("File " + file_path + "can not be opened.");
                 }
             }
             catch (const std::exception&) {
@@ -145,7 +144,11 @@ client_logger::client_logger(
 
                 throw;
             } 
+
+            _streams_users[file_path] = std::make_pair(stream, 0);
         }
+        _streams[file_path] = std::make_pair(_streams_users[file_path].first, severities);
+        _streams_users[file_path].second++;
     }
 }
 

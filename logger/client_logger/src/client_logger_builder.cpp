@@ -48,7 +48,7 @@ logger_builder *client_logger_builder::add_file_stream(
     logger::severity severity)
 {
     std::string abs_path = std::filesystem::weakly_canonical(stream_file_path).string();
-    _configuration[stream_file_path].insert(severity);
+    _configuration[abs_path].insert(severity);
     return this;
 }
 
@@ -75,7 +75,7 @@ logger_builder* client_logger_builder::transform_with_configuration(
 
     std::vector<std::string> data_path_components;
 
-    for (int i = 0; i < configuration_file_path.size(); i++) {
+    for (int i = 0; i < configuration_file_path.size(); ) {
         int tmp_ind = std::min(configuration_path.find(':', i), configuration_file_path.size());
 
         std::string component = configuration_path.substr(i, tmp_ind - i);
@@ -99,6 +99,7 @@ logger_builder* client_logger_builder::transform_with_configuration(
     json_obj = json_obj["logger_files"];
 
     for (auto &[file_path, severities] : json_obj.items()) {
+
         for (std::string severity_str : severities) {
             logger::severity severity = string_to_severity(severity_str);
 
@@ -110,6 +111,8 @@ logger_builder* client_logger_builder::transform_with_configuration(
             }
         }
     }
+
+    //std::cout << _configuration.size() << std::endl; 
 
     return this;
 }

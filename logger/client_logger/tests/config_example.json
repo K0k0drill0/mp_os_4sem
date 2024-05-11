@@ -11,9 +11,9 @@
             "format_string" : "%d %t - [%s] %m",
             "logger_files":
             {
-                "for_log1" : ["DEBUG"],
-                "../tests/for_log1" : ["TRACE", "INFO"],
-                "for_log2" : ["DEBUG"]
+                "/home/kokodrillo/git_projects/mp_os_4sem/logger/client_logger/tests/for_log1" : ["ldwkf"],
+                //"/home/kokodrillo/git_projects/mp_os_4sem/logger/client_logger/tests/for_log1" : ["information", "warning"],
+                "console" : ["information"]
             }
         }
     }

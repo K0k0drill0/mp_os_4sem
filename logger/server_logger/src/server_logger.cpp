@@ -2,38 +2,71 @@
 
 #include "../include/server_logger.h"
 
-server_logger::server_logger(
-    server_logger const &other)
-{
-    throw not_implemented("server_logger::server_logger(server_logger const &other)", "your code should be here...");
-}
+#include <cmath>
 
-server_logger &server_logger::operator=(
-    server_logger const &other)
-{
-    throw not_implemented("server_logger &server_logger::operator=(server_logger const &other)", "your code should be here...");
-}
+#ifdef __linux__
+#include <sys/msg.h>
+#endif
 
-server_logger::server_logger(
-    server_logger &&other) noexcept
-{
-    throw not_implemented("server_logger::server_logger(server_logger &&other) noexcept", "your code should be here...");
-}
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
-server_logger &server_logger::operator=(
-    server_logger &&other) noexcept
-{
-    throw not_implemented("server_logger &server_logger::operator=(server_logger &&other) noexcept", "your code should be here...");
-}
+server_logger::server_logger(std::map<std::string, std::set<logger::severity>>) {
+    #ifdef __linux__
+    _mq_descriptor = msgget(LINUX_MSG_QUEUE_KEY, 0666);
 
-server_logger::~server_logger() noexcept
-{
-    throw not_implemented("server_logger::~server_logger() noexcept", "your code should be here...");
+    if (_mq_descriptor == -1) {
+        throw std::runtime error("Cannot connect to server");
+    }
+    #endif
+
+    #ifdef _WIN32
+    _hFile = CreateFile(WIN32_MAILSLOT_NAME, GENERIC_WRITE, FILE_SHARE_READ,
+            (LPSECURITY_ATTRIBUTES) NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, (HANDLE) NULL);
+    
+    if (_hFile == INVALID_HANDLE_VALUE)
+    {
+        throw std::runtime_error("Cannot connect to the server");
+    }
+    #endif
 }
 
 logger const *server_logger::log(
     const std::string &text,
     logger::severity severity) const noexcept
 {
-    throw not_implemented("logger const *server_logger::log(const std::string &text, logger::severity severity) const noexcept", "your code should be here...");
+    for (auto iter : _configuration) {
+        const std::string &file_path = iter.first;
+        const auto severities = iter.second;
+
+        if (severities.count(severity)) {
+            mutex.lock();
+
+            msg_t msg;
+            msg.type = LOG_PRIOR;
+            msg.pid = getpid();
+            msg.packet_cnt = std::ceil(1.0 * text.size() / MAX_MSG_TEXT_SIZE);
+            msg.severity = static_cast<int>(severity);
+
+            strcpy(msg.file_path, file_path.c_str());
+
+            for (int i = 0; i < msg.packet_cnt; i++) {
+                msg.packet_id = i + 1;
+                strcpy(msg.text, text.substr(i * MAX_MSG_TEXT_SIZE, MAX_MSG_TEXT_SIZE).c_str());
+
+                #ifdef __linux__
+	            msgsnd(_mq_descriptor, &msg, sizeof(msg_t), 0);
+                #endif
+                
+                #ifdef _WIN32
+                WriteFile(_hFile, &msg, sizeof(msg_t), (LPDWORD) NULL, (LPOVERLAPPED) NULL);
+                #endif
+            }
+
+            mutex.unlock();
+        }
+    }
+
+    return this;
 }

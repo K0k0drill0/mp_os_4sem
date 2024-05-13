@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        ".fantomasignore": "ignore",
         "stdexcept": "cpp",
         "iostream": "cpp",
         "any": "cpp",
@@ -66,6 +67,7 @@
         "thread": "cpp",
         "typeinfo": "cpp",
         "valarray": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "span": "cpp"
     }
 }

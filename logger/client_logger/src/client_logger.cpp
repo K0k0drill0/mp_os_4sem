@@ -1,6 +1,7 @@
 #include <not_implemented.h>
 #include <fstream>
 #include <unordered_map>
+#include <time.h>
 
 #include "../include/client_logger.h"
 

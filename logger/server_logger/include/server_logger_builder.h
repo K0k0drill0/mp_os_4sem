@@ -3,9 +3,15 @@
 
 #include <logger_builder.h>
 
+#include <set>
+#include <map>
+
 class server_logger_builder final:
     public logger_builder
 {
+
+private: 
+    std::map<std::string, std::set<logger::severity>> _configuration;
 
 public:
 

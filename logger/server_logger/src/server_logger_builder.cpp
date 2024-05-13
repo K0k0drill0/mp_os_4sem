@@ -107,6 +107,8 @@ logger_builder* server_logger_builder::transform_with_configuration(
 logger_builder *server_logger_builder::clear()
 {
     _configuration.clear();
+
+    return this;
 }
 
 logger *server_logger_builder::build() const

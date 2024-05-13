@@ -1,0 +1,7 @@
+{
+    "server_logger_builder_configuration" : {
+        "logger_files" : {
+            "console" : ["debug", "information"]
+        }
+    }
+}

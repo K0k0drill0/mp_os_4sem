@@ -10,7 +10,7 @@ int main(
 {
     try {
 
-        std::string configuration_file_path("D:\\LABS\\mp_os_4sem\\logger\\server_logger\\tests\\configuration_example.json");
+        std::string configuration_file_path("D:\\LABS\\mp_os_4sem\\logger\\server_logger\\tests\\config_example.json");
         std::string configuration_path("server_logger_builder_configuration");
 
         logger_builder* buider = new server_logger_builder;

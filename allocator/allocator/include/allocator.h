@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <utility>
 
+#include <string>
+
 class allocator
 {
 
@@ -40,6 +42,13 @@ public:
     virtual void deallocate(
         void *at) = 0;
     
+protected:
+
+    static std::string get_block_dump(
+        void* block,
+        size_t size
+    );
+
 };
 
 template<

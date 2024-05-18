@@ -1,7 +1,10 @@
 {
     "server_logger_builder_configuration" : {
         "logger_files" : {
-            "console" : ["debug", "information"]
+            "D:\\LABS\\mp_os_4sem\\build\\logger\\server_logger\\tests\\output.txt" : ["debug", "information"]
+            
         }
     }
+
 }
+

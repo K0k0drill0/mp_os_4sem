@@ -15,21 +15,21 @@ private:
 
 public:
 
-    server_logger_builder();
+    server_logger_builder() = default;
 
     server_logger_builder(
-        server_logger_builder const &other);
+        server_logger_builder const &other) = default;
 
     server_logger_builder &operator=(
-        server_logger_builder const &other);
+        server_logger_builder const &other) = default;
 
     server_logger_builder(
-        server_logger_builder &&other) noexcept;
+        server_logger_builder &&other) noexcept = default;
 
     server_logger_builder &operator=(
-        server_logger_builder &&other) noexcept;
+        server_logger_builder &&other) noexcept = default;
 
-    ~server_logger_builder() noexcept override;
+    ~server_logger_builder() noexcept override = default;
 
 public:
 

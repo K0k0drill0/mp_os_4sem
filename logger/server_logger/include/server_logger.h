@@ -9,11 +9,13 @@
 #endif
 
 #include <set>
+#include <mutex>
 #include <map>
 
-// #define LINUX_MSG_QUEUE_KEY 100
+#define LINUX_MSG_QUEUE_KEY 100
 #define MAX_MSG_TEXT_SIZE 1024
-// #define LOG_PRIOR 2
+#define LOG_PRIOR 2
+#define WIN32_MAILSLOT_NAME "\\\\.\\mailslot\\mp_os_srvr_lgr"
 
 class server_logger final:
     public logger
@@ -22,54 +24,50 @@ class server_logger final:
 friend class server_logger_builder;
 
 private:
-    // struct msg_t {
-    //     long type;
-    //     pid_t pid;
-    //     size_t packet_id;
-    //     size_t packet_cnt;
-    //     char file_path[256];
-    //     int severity;
-    //     char text[MAX_MSG_TEXT_SIZE];
-    // };
-    pid_t _process_id;
+    struct msg_t {
+        long mtype;
+        pid_t pid;
+        size_t packet_id;
+        size_t packet_cnt;
+        char file_path[256];
+        int severity;
+        char mtext[MAX_MSG_TEXT_SIZE];
+    };
 
-    size_t mutable _request;
+private: 
+    static std::mutex mutex;
 
 private:
-    #ifdef __linux__
-        std::map<std::string, std::pair<mqd_t, std::set<logger::severity>>> _queues;
-
-        static std::map<std::string, std::pair<mqd_t, unsigned int>> _queues_users;
+     #ifdef __linux__
+    int _mq_descriptor;
     #endif
-
+    
     #ifdef _WIN32
-        std::map<std::string, std::pair<HANDLE, std::set<logger::severity>>> _queues;
-
-        static std::map<std::string, std::pair<HANDLE, unsigned int>> _queues_users;
+    HANDLE _hFile;
     #endif
-
-    // std::map<std::string, std::set<logger::severity>> _configuration;
+    
+    std::map<std::string, std::set<severity>> _configuration;
 
     void close_streams();
 
 private:
-    server_logger(std::map<std::string, std::set<logger::severity>> const configuration);
+    server_logger(std::map<std::string, std::set<logger::severity>> const &configuration);
 
 public:
 
     server_logger(
-        server_logger const &other);
+        server_logger const &other) = default;
 
     server_logger &operator=(
-        server_logger const &other);
+        server_logger const &other) = default;
 
     server_logger(
-        server_logger &&other) noexcept;
+        server_logger &&other) noexcept = default;
 
     server_logger &operator=(
-        server_logger &&other) noexcept;
+        server_logger &&other) noexcept = default;
 
-    ~server_logger() noexcept final;
+    ~server_logger() noexcept final = default;
 
 public:
 

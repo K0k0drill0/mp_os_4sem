@@ -5,35 +5,11 @@
 #include <server_logger.h>
 
 #include <nlohmann/json.hpp>
+#include <not_implemented.h>
 
 #include "../include/server_logger_builder.h"
 
 #include <vector>
-
-server_logger_builder::server_logger_builder() { }
-
-server_logger_builder::server_logger_builder(
-    server_logger_builder const &other) : _configuration(other._configuration) // probably
-{ }
-
-server_logger_builder &server_logger_builder::operator=(
-    server_logger_builder const &other)
-{
-    if (this == &other) {
-        return *this;
-    }
-    _configuration = other._configuration;
-
-    return *this;
-}
-
-server_logger_builder::server_logger_builder(
-    server_logger_builder &&other) noexcept = default;
-
-server_logger_builder &server_logger_builder::operator=(
-    server_logger_builder &&other) noexcept = default;
-
-server_logger_builder::~server_logger_builder() noexcept = default;
 
 logger_builder *server_logger_builder::add_file_stream(
     std::string const &stream_file_path,
@@ -56,13 +32,11 @@ logger_builder* server_logger_builder::transform_with_configuration(
     std::string const &configuration_file_path,
     std::string const &configuration_path)
 {
-    std::runtime_error nonexistent_file("Configuration file does not exist.\n");
-    std::runtime_error empty_file("Can not find configuration path.\n");
 
     std::ifstream stream(configuration_file_path);
 
     if (!stream.is_open()) {
-        throw nonexistent_file;
+        throw std::runtime_error("File does not exist.");
     }
 
     std::vector<std::string> data_path_components;

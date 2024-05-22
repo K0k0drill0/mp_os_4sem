@@ -12,6 +12,7 @@
 #include <allocator_guardant.h>
 #include <not_implemented.h>
 #include <search_tree.h>
+#include <string>
 
 template<
     typename tkey,
@@ -260,6 +261,18 @@ public:
     public:
         
         void pass_to_next_node();
+
+        void set_value(
+            tvalue const &value) 
+        {
+            this->_state.top().value = value;
+        }
+        
+        void set_value(
+            tvalue &&value) noexcept 
+        {
+            this->_state.top().value = std::move(value);
+        }
       
     };
     
@@ -418,6 +431,19 @@ public:
         
         void pass_to_next_node();
 
+    public:
+        void set_value(
+            tvalue const &value) 
+        {
+            this->_state.top().value = value;
+        }
+        
+        void set_value(
+            tvalue &&value) noexcept 
+        {
+            this->_state.top().value = std::move(value);
+        }
+
     };
     
     class prefix_const_reverse_iterator final
@@ -565,6 +591,19 @@ public:
         }
         
         void pass_to_next_node();
+
+    public:
+        void set_value(
+            tvalue const &value) 
+        {
+            this->_state.top().value = value;
+        }
+        
+        void set_value(
+            tvalue &&value) noexcept 
+        {
+            this->_state.top().value = std::move(value);
+        }
         
     };
     
@@ -578,6 +617,22 @@ public:
         explicit infix_const_iterator(
             binary_search_tree<tkey, tvalue> const * holder,
             typename binary_search_tree<tkey, tvalue>::node *subtree_root);
+
+        explicit infix_const_iterator(
+            binary_search_tree<tkey, tvalue> const *holder,
+            std::stack<node*> const &state) :
+            _holder(holder),
+            _path(state) 
+        {
+            if (_path.empty())
+            {
+                _data = _holder->create_iterator_data();
+            }
+            else
+            {
+                _data = _holder->create_iterator_data(_path.size() - 1, _path.top());
+            }
+        }
     
     public:
         
@@ -685,6 +740,19 @@ public:
         }
         
         void pass_to_next_node();
+
+    public:
+        void set_value(
+            tvalue const &value) 
+        {
+            this->_state.top().value = value;
+        }
+        
+        void set_value(
+            tvalue &&value) noexcept 
+        {
+            this->_state.top().value = std::move(value);
+        }
 
     };
     
@@ -806,6 +874,19 @@ public:
         
         void pass_to_next_node();
 
+    public:
+        void set_value(
+            tvalue const &value) 
+        {
+            this->_state.top().value = value;
+        }
+        
+        void set_value(
+            tvalue &&value) noexcept 
+        {
+            this->_state.top().value = std::move(value);
+        }
+
     };
     
     class postfix_const_iterator final
@@ -925,6 +1006,19 @@ public:
         }
         
         void pass_to_next_node();
+
+    public:
+        void set_value(
+            tvalue const &value) 
+        {
+            this->_state.top().value = value;
+        }
+        
+        void set_value(
+            tvalue &&value) noexcept 
+        {
+            this->_state.top().value = std::move(value);
+        }
 
     };
     
@@ -1182,56 +1276,64 @@ protected:
             bool lower_bound_inclusive,
             bool upper_bound_inclusive)
         {
+                auto const &comparer = this->_tree->_keys_comparer;
             std::vector<typename associative_container<tkey, tvalue>::key_value_pair> range;
+            std::stack<node*> path;
 
-            // TODO: this should be computed
-            std::stack<node *> path;
-            node *current = this->_tree->_root;
+            node *path_finder = reinterpret_cast<node*>(this->_tree->_root);
+            int comparison_result;
+            
             while (true)
             {
-                if (current == nullptr)
+                path.push(path_finder);
+                
+                if (path_finder == nullptr || (comparison_result = comparer(lower_bound, path_finder->key)) == 0)
                 {
                     break;
                 }
-
-                auto comparison_result = this->_tree->_keys_comparer(lower_bound, current->key);
-                path.push(current);
-
-                if (comparison_result == 0)
-                {
-                    if (lower_bound_inclusive)
-                    {
-                        break;
-                    }
-
-                    current = current->right_subtree;
-                }
-                else if (comparison_result < 0)
-                {
-                    current = current->left_subtree;
-                }
-                else
-                {
-                    current = current->right_subtree;
-                }
-
-                if (current == nullptr && this->_tree->_keys_comparer(path.top()->key, lower_bound) < (lower_bound_inclusive
-                    ? 0
-                    : 1))
-                {
-                    path = std::move(std::stack<node *>());
-                }
+                
+                path_finder = comparison_result < 0
+                        ? path_finder->left_subtree
+                        : path_finder->right_subtree;
             }
-
-            auto it = infix_iterator(this->_tree, path, this->_tree->create_iterator_data());
-            while ((it != this->_tree->end_infix()) && (this->_tree->_keys_comparer(upper_bound, (*it)->get_key()) > (upper_bound_inclusive
-                ? -1
-                : 0)))
+            
+            if (path.top() == nullptr)
             {
-                range.push_back(std::move(typename associative_container<tkey, tvalue>::key_value_pair((*it)->get_key(), (*it)->get_value())));
-                ++it;
+                path.pop();
+                
+                // if came from right subtree
+                if (!path.empty() && comparer(lower_bound, path.top()->key) == 1)
+                {
+                    do
+                    {
+                        path_finder = path.top();
+                        path.pop();
+                    }
+                    while (!path.empty() && path.top()->right_subtree == path_finder);
+                }
             }
-
+            
+            if (path.empty())
+            {
+                return range;
+            }
+            
+            if (lower_bound_inclusive)
+            {
+                node *top = path.top();
+                range.push_back({ top->key, top->value });
+            }
+            
+            auto iter = binary_search_tree<tkey, tvalue>::infix_const_iterator(this->_tree, path);
+            ++iter;
+            
+            while(iter != this->_tree->cend_infix() && 
+                    (comparer((*iter)->get_key(), upper_bound)) < (upper_bound_inclusive ? 1 : 0))
+            {
+                range.push_back({ (*iter)->get_key(), (*iter)->get_value() });
+                ++iter;
+            }
+            
             return range;
         }
         
@@ -2272,13 +2374,14 @@ binary_search_tree<tkey, tvalue>::infix_iterator::infix_iterator(
     binary_search_tree<tkey, tvalue> const *holder,
     typename binary_search_tree<tkey, tvalue>::node *subtree_root) : _holder(holder)
 {
-    node *node = subtree_root;
-
-    if (node != nullptr) {
-        this->_path.push(node);
+    while (subtree_root != nullptr)
+    {
+        this->_state.push(subtree_root);
+        subtree_root = subtree_root->left_subtree;
     }
-
-    this->_data = holder->create_iterator_data(this->_path.size() - 1, node);
+    
+    node *node = this->_state.empty() ? nullptr : this->_state.top();
+    this->_data = holder->create_iterator_data(this->_state.size() - 1, node);
 }
 
 template<
@@ -2425,12 +2528,13 @@ binary_search_tree<tkey, tvalue>::infix_const_iterator::infix_const_iterator(
     binary_search_tree<tkey, tvalue> const *holder,
     typename binary_search_tree<tkey, tvalue>::node *subtree_root) : _holder(holder)
 {
-    node *node = subtree_root;
-
-    if (node != nullptr) {
-        this->_path.push(node);
+    while (subtree_root != nullptr)
+    {
+        this->_path.push(subtree_root);
+        subtree_root = subtree_root->left_subtree;
     }
-
+    
+    node *node = this->_path.empty() ? nullptr : this->_path.top();
     this->_data = holder->create_iterator_data(this->_path.size() - 1, node);
 }
 
@@ -2578,13 +2682,14 @@ binary_search_tree<tkey, tvalue>::infix_reverse_iterator::infix_reverse_iterator
     binary_search_tree<tkey, tvalue> const *holder,
     typename binary_search_tree<tkey, tvalue>::node *subtree_root) : _holder(holder)
 {
-    node *node = subtree_root;
-
-    if (node != nullptr) {
-        this->_path.push(node);
+    while (subtree_root != nullptr)
+    {
+        this->_state.push(subtree_root);
+        subtree_root = subtree_root->right_subtree;
     }
-
-    this->_data = holder->create_iterator_data(this->_path.size() - 1, node);
+    
+    node *node = this->_state.empty() ? nullptr : this->_state.top();
+    this->_data = holder->create_iterator_data(this->_state.size() - 1, node);
 }
 
 template<
@@ -2731,13 +2836,14 @@ binary_search_tree<tkey, tvalue>::infix_const_reverse_iterator::infix_const_reve
     binary_search_tree<tkey, tvalue> const *holder,
     typename binary_search_tree<tkey, tvalue>::node *subtree_root) : _holder(holder)
 {
-    node *node = subtree_root;
-
-    if (node != nullptr) {
-        this->_path.push(node);
+    while (subtree_root != nullptr)
+    {
+        this->_state.push(subtree_root);
+        subtree_root = subtree_root->right_subtree;
     }
-
-    this->_data = holder->create_iterator_data(this->_path.size() - 1, node);
+    
+    node *node = this->_state.empty() ? nullptr : this->_state.top();
+    this->_data = holder->create_iterator_data(this->_state.size() - 1, node);
 }
 
 template<
@@ -2884,12 +2990,15 @@ binary_search_tree<tkey, tvalue>::postfix_iterator::postfix_iterator(
     binary_search_tree<tkey, tvalue> const *holder,
     typename binary_search_tree<tkey, tvalue>::node *subtree_root) : _holder(holder)
 {
-    node *node = subtree_root;
-
-    if (node != nullptr) {
-        this->_path.push(node);
+    while (subtree_root != nullptr)
+    {
+        this->_path.push(subtree_root);     
+        subtree_root = subtree_root->left_subtree != nullptr
+                ? subtree_root->left_subtree
+                : subtree_root->right_subtree;
     }
-
+    
+    node *node = this->_path.empty() ? nullptr : this->_path.top();
     this->_data = holder->create_iterator_data(this->_path.size() - 1, node);
 }
 
@@ -3036,12 +3145,15 @@ binary_search_tree<tkey, tvalue>::postfix_const_iterator::postfix_const_iterator
     binary_search_tree<tkey, tvalue> const *holder,
     typename binary_search_tree<tkey, tvalue>::node *subtree_root) : _holder(holder)
 {
-    node *node = subtree_root;
-
-    if (node != nullptr) {
-        this->_path.push(node);
+    while (subtree_root != nullptr)
+    {
+        this->_path.push(subtree_root);     
+        subtree_root = subtree_root->left_subtree != nullptr
+                ? subtree_root->left_subtree
+                : subtree_root->right_subtree;
     }
-
+    
+    node *node = this->_path.empty() ? nullptr : this->_path.top();
     this->_data = holder->create_iterator_data(this->_path.size() - 1, node);
 }
 
@@ -3187,13 +3299,16 @@ binary_search_tree<tkey, tvalue>::postfix_reverse_iterator::postfix_reverse_iter
     binary_search_tree<tkey, tvalue> const *holder,
     typename binary_search_tree<tkey, tvalue>::node *subtree_root) : _holder(holder)
 {
-    node *node = subtree_root;
-
-    if (node != nullptr) {
-        this->_path.push(node);
+    while (subtree_root != nullptr)
+    {
+        this->_state.push(subtree_root);     
+        subtree_root = subtree_root->right_subtree != nullptr
+                ? subtree_root->right_subtree
+                : subtree_root->left_subtree;
     }
-
-    this->_data = holder->create_iterator_data(this->_path.size() - 1, node);
+    
+    node *node = this->_state.empty() ? nullptr : this->_state.top();
+    this->_data = holder->create_iterator_data(this->_state.size() - 1, node);
 }
 
 template<
@@ -3338,13 +3453,16 @@ binary_search_tree<tkey, tvalue>::postfix_const_reverse_iterator::postfix_const_
     binary_search_tree<tkey, tvalue> const *holder,
     typename binary_search_tree<tkey, tvalue>::node *subtree_root) : _holder(holder)
 {
-    node *node = subtree_root;
-
-    if (node != nullptr) {
-        this->_path.push(node);
+    while (subtree_root != nullptr)
+    {
+        this->_state.push(subtree_root);     
+        subtree_root = subtree_root->right_subtree != nullptr
+                ? subtree_root->right_subtree
+                : subtree_root->left_subtree;
     }
-
-    this->_data = holder->create_iterator_data(this->_path.size() - 1, node);
+    
+    node *node = this->_state.empty() ? nullptr : this->_state.top();
+    this->_data = holder->create_iterator_data(this->_state.size() - 1, node);
 }
 
 template<
@@ -4186,6 +4304,44 @@ typename binary_search_tree<tkey, tvalue>::postfix_const_reverse_iterator binary
 
 #pragma region subtree rotations implementation
 
+namespace extra_utility
+{
+    
+    template<
+        typename T>
+    std::string make_string(T const &value);
+    
+    template<> std::string make_string(int const &value);
+    template<> std::string make_string(long const &value);
+    template<> std::string make_string(long long const &value);
+    template<> std::string make_string(unsigned const &value);
+    template<> std::string make_string(unsigned long const &value);
+    template<> std::string make_string(unsigned long long const &value);
+    template<> std::string make_string(float const &value);
+    template<> std::string make_string(double const &value);
+    template<> std::string make_string(long double const &value);
+    template<> std::string make_string(std::string const &value);
+
+    template<
+    typename T>
+    std::string make_string(T const &value)
+    {
+        return "unimplemented parse";
+    }
+
+    template<> std::string make_string(int const &value)                 { return std::to_string(value); }
+    template<> std::string make_string(long const &value)                { return std::to_string(value); }
+    template<> std::string make_string(long long const &value)           { return std::to_string(value); }
+    template<> std::string make_string(unsigned const &value)            { return std::to_string(value); }
+    template<> std::string make_string(unsigned long const &value)       { return std::to_string(value); }
+    template<> std::string make_string(unsigned long long const &value)  { return std::to_string(value); }
+    template<> std::string make_string(float const &value)               { return std::to_string(value); }
+    template<> std::string make_string(double const &value)              { return std::to_string(value); }
+    template<> std::string make_string(long double const &value)         { return std::to_string(value); }
+    template<> std::string make_string(std::string const &value)         { return value; }
+    
+}
+
 template<
     typename tkey,
     typename tvalue>
@@ -4193,7 +4349,28 @@ void binary_search_tree<tkey, tvalue>::small_left_rotation(
     binary_search_tree<tkey, tvalue>::node *&subtree_root,
     bool validate) const
 {
-    throw not_implemented("template<typename tkey, typename tvalue> void binary_search_tree<tkey, tvalue>::small_left_rotation(binary_search_tree<tkey, tvalue>::node *&, bool) const", "your code should be here...");
+    this->trace_with_guard(get_typename() + "::small_left_rotation() : called.")
+        ->debug_with_guard(get_typename() + "::small_left_rotation() : called.")
+        ->debug_with_guard(get_typename() + "::small_left_rotation() : rotating node with key \"" + 
+            std::to_string(subtree_root->key) + "\"");
+
+    if (validate && (subtree_root == nullptr || subtree_root->right_subtree == nullptr))
+    {
+        throw std::logic_error("Cannot perform small left rotation");
+    }
+
+    binary_search_tree<tkey, tvalue>::node *new_subtree_root = subtree_root->right_subtree;
+
+    subtree_root->right_subtree = new_subtree_root->left_subtree;
+    new_subtree_root->left_subtree = subtree_root;
+    subtree_root = new_subtree_root;
+    
+    update_node_data(new_subtree_root->left_subtree);
+    update_node_data(new_subtree_root);
+    
+    this->trace_with_guard(get_typename() + "::small_left_rotation() : successfuly finished.")
+        ->debug_with_guard(get_typename() + "::small_left_rotation() : successfuly finished.");
+            
 }
 
 template<
@@ -4203,7 +4380,27 @@ void binary_search_tree<tkey, tvalue>::small_right_rotation(
     binary_search_tree<tkey, tvalue>::node *&subtree_root,
     bool validate) const
 {
-    throw not_implemented("template<typename tkey, typename tvalue> void binary_search_tree<tkey, tvalue>::small_right_rotation(binary_search_tree<tkey, tvalue>::node *&, bool) const", "your code should be here...");
+    this->trace_with_guard(get_typename() + "::small_right_rotation() : called.")
+        ->debug_with_guard(get_typename() + "::small_right_rotation() : called.")
+        ->debug_with_guard(get_typename() + "::small_right_rotation() : rotating node with key \"" + 
+            extra_utility::make_string(subtree_root->key) + "\"");
+    
+    if (validate && (subtree_root == nullptr || subtree_root->left_subtree == nullptr))
+    {
+        throw std::logic_error("Cannot perform small right rotation");
+    }
+    
+    binary_search_tree<tkey, tvalue>::node *new_subtree_root = subtree_root->left_subtree;
+    
+    subtree_root->left_subtree = new_subtree_root->right_subtree;
+    new_subtree_root->right_subtree = subtree_root;
+    subtree_root = new_subtree_root;
+    
+    update_node_data(new_subtree_root->right_subtree);
+    update_node_data(new_subtree_root);
+    
+    this->trace_with_guard(get_typename() + "::small_right_rotation() : successfuly finished.")
+        ->debug_with_guard(get_typename() + "::small_right_rotation() : successfuly finished.");
 }
 
 template<
@@ -4213,7 +4410,20 @@ void binary_search_tree<tkey, tvalue>::big_left_rotation(
     binary_search_tree<tkey, tvalue>::node *&subtree_root,
     bool validate) const
 {
-    throw not_implemented("template<typename tkey, typename tvalue> void binary_search_tree<tkey, tvalue>::big_left_rotation(binary_search_tree<tkey, tvalue>::node *&, bool) const", "your code should be here...");
+    this->trace_with_guard(get_typename() + "::big_left_rotation() : called.")
+        ->debug_with_guard(get_typename() + "::big_left_rotation() : called.");
+    
+    if (validate && (subtree_root == nullptr ||
+            subtree_root->right_subtree == nullptr || subtree_root->right_subtree->left_subtree == nullptr))
+    {
+        throw std::logic_error("Cannot perform big left rotation");
+    }
+    
+    small_right_rotation(subtree_root->right_subtree, false);
+    small_left_rotation(subtree_root, false);
+    
+    this->trace_with_guard(get_typename() + "::big_left_rotation() : successfuly finished.")
+        ->debug_with_guard(get_typename() + "::big_left_rotation() : successfuly finished.");
 }
 
 template<
@@ -4223,7 +4433,20 @@ void binary_search_tree<tkey, tvalue>::big_right_rotation(
     binary_search_tree<tkey, tvalue>::node *&subtree_root,
     bool validate) const
 {
-    throw not_implemented("template<typename tkey, typename tvalue> void binary_search_tree<tkey, tvalue>::big_right_rotation(binary_search_tree<tkey, tvalue>::node *&, bool) const", "your code should be here...");
+    this->trace_with_guard(get_typename() + "::big_right_rotation() : called.")
+        ->debug_with_guard(get_typename() + "::big_right_rotation() : called.");
+    
+    if (validate && (subtree_root == nullptr ||
+            subtree_root->left_subtree == nullptr || subtree_root->left_subtree->right_subtree == nullptr))
+    {
+        throw std::logic_error("Cannot perform big right rotation");
+    }
+    
+    small_left_rotation(subtree_root->left_subtree, false);
+    small_right_rotation(subtree_root, false);
+    
+    this->trace_with_guard(get_typename() + "::big_right_rotation() : successfuly finished.")
+        ->debug_with_guard(get_typename() + "::big_right_rotation() : successfuly finished.");
 }
 
 template<
@@ -4234,7 +4457,28 @@ void binary_search_tree<tkey, tvalue>::double_left_rotation(
     bool at_grandparent_first,
     bool validate) const
 {
-    throw not_implemented("template<typename tkey, typename tvalue> void binary_search_tree<tkey, tvalue>::double_left_rotation(binary_search_tree<tkey, tvalue>::node *&, bool, bool) const", "your code should be here...");
+    this->trace_with_guard(get_typename() + "::double_left_rotation() : called.")
+        ->debug_with_guard(get_typename() + "::double_left_rotation() : called.");
+    
+    if (validate && (subtree_root == nullptr ||
+            subtree_root->right_subtree == nullptr || subtree_root->right_subtree->right_subtree == nullptr))
+    {
+        throw std::logic_error("Cannot perform double right rotation");
+    }
+    
+    if (at_grandparent_first)
+    {
+        small_left_rotation(subtree_root, false);
+        small_left_rotation(subtree_root, false);
+    }
+    else
+    {
+        small_left_rotation(subtree_root->right, false);
+        small_left_rotation(subtree_root, false);
+    }
+    
+    this->trace_with_guard(get_typename() + "::double_left_rotation() : successfuly finished.")
+        ->debug_with_guard(get_typename() + "::double_left_rotation() : successfuly finished.");
 }
 
 template<
@@ -4245,7 +4489,28 @@ void binary_search_tree<tkey, tvalue>::double_right_rotation(
     bool at_grandparent_first,
     bool validate) const
 {
-    throw not_implemented("template<typename tkey, typename tvalue> void binary_search_tree<tkey, tvalue>::double_right_rotation(binary_search_tree<tkey, tvalue>::node *&, bool, bool) const", "your code should be here...");
+    this->trace_with_guard(get_typename() + "::double_right_rotation() : called.")
+        ->debug_with_guard(get_typename() + "::double_right_rotation() : called.");
+    
+    if (validate && (subtree_root == nullptr ||
+            subtree_root->left_subtree == nullptr || subtree_root->left_subtree->left_subtree == nullptr))
+    {
+        throw std::logic_error("Cannot perform double left rotation");
+    }
+    
+    if (at_grandparent_first)
+    {
+        small_left_rotation(subtree_root, false);
+        small_left_rotation(subtree_root, false);
+    }
+    else
+    {
+        small_left_rotation(subtree_root->left, false);
+        small_left_rotation(subtree_root, false);
+    }
+    
+    this->trace_with_guard(get_typename() + "::double_right_rotation() : successfuly finished.")
+        ->debug_with_guard(get_typename() + "::double_right_rotation() : successfuly finished.");
 }
 
 #pragma endregion subtree rotations implementation

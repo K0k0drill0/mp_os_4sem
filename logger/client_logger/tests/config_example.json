@@ -8,11 +8,10 @@
         "not_real" : "cont",
         "client_logger_builder.config": 
         {
-            "format_string" : "%d %t - [%s] %m",
+            "format_string" : "log",
             "logger_files":
             {
-                "/home/kokodrillo/git_projects/mp_os_4sem/logger/client_logger/tests/for_log1" : ["ldwkf"],
-                //"/home/kokodrillo/git_projects/mp_os_4sem/logger/client_logger/tests/for_log1" : ["information", "warning"],
+                "/home/kokodrillo/git_projects/mp_os_4sem/logger/client_logger/tests/for_log1" : ["debug"],
                 "console" : ["information"]
             }
         }

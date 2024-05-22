@@ -71,7 +71,7 @@ int main() {
 
     while (run_flag) {
         #ifdef __linux__
-        ssize_t = rcv_cnt = msgrcv(mq_descriptor, &msg, max_msg_size, 0, MSG_NOERROR);
+        ssize_t rcv_cnt = msgrcv(mq_descriptor, &msg, max_msg_size, 0, MSG_NOERROR);
         if (rcv_cnt == -1) {
             std::cout << "An error occured while receiving the message" << std::endl;
         }

@@ -45,9 +45,8 @@ public:
         void *at) override;
 
 public:
-    
-    void foo()
-    {};
+
+
 
 private:
     

@@ -1,30 +1,40 @@
-#include <gtest/gtest.h>
+#include <fstream>
 
-#include <iostream>
-
+#include <server_logger_builder.h>
 #include <server_logger.h>
+
+#include <gtest/gtest.h>
 
 int main(
     int argc,
     char *argv[])
 {
-    try {
+    //testing::InitGoogleTest(&argc, argv);
 
-        std::string configuration_file_path("D:\\LABS\\mp_os_4sem\\logger\\server_logger\\tests\\config_example.json");
-        std::string configuration_path("server_logger_builder_configuration");
-
-        logger_builder* buider = new server_logger_builder;
-
-        logger *log = buider->transform_with_configuration(configuration_file_path, configuration_path)->build();
-
-        log->debug("omg it works");
-    }
-    catch (std::exception &ex) {
-        std::cout << ex.what() << std::endl;
-    }
-
+    //return RUN_ALL_TESTS();
     
-    testing::InitGoogleTest(&argc, argv);
-
-    return RUN_ALL_TESTS();
+    std::string path = "aboba";
+    
+    #ifdef _WIN32
+    path = "tmp_none";
+    #endif
+    
+    #ifdef __linux__
+    path = "/home/kokodrillo/git_projects/mp_os_4sem/logger/server_logger/tests/output.txt";
+    #endif
+    
+    logger_builder *builder = new server_logger_builder();
+    
+    logger* logger = builder
+            ->add_console_stream(logger::severity::information)
+            ->add_file_stream(path, logger::severity::information)
+            ->add_file_stream(path, logger::severity::trace)
+            ->add_file_stream("/", logger::severity::information)
+            ->build();
+    
+    logger->information("INFO!!!");
+    logger->trace("TRACE!!!");
+    
+    delete builder;
+    delete logger;
 }

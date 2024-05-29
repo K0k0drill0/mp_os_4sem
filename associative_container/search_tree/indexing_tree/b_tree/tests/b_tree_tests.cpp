@@ -646,6 +646,10 @@ TEST(bTreePositiveTests, test9)
 
     std::vector<typename associative_container<int, std::string>::key_value_pair> actual_result = tree->obtain_between(4, 101, true, true);
 
+    for (int i = 0; i < actual_result.size(); i++) {
+        std::cout << actual_result[i].key << ' ' << actual_result[i].value << std::endl;
+    }
+
     EXPECT_TRUE(compare_obtain_results(expected_result, actual_result, values_comparer));
 
     logger->trace("bTreePositiveTests.test9 finished");

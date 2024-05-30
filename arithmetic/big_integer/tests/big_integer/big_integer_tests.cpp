@@ -3,6 +3,7 @@
 #include <big_integer.h>
 #include <client_logger.h>
 #include <operation_not_supported.h>
+#include <version>
 
 logger *create_logger(
     std::vector<std::pair<std::string, logger::severity>> const &output_file_streams_setup,
@@ -207,10 +208,21 @@ TEST(positive_tests, test9)
     delete logger;
 }
 
+void memory_dump(unsigned int num) {
+    for (int i = sizeof(unsigned int) - 1; i >= 0; i--) {
+        for (int j = 7; j >= 0; j--) 
+            std::cout << ((num >> (i * 8 + j)) & 1);
+        std::cout << ' ';
+        //num >>= 8;
+    }
+    std::cout << std::endl;
+}
+
 int main(
     int argc,
     char **argv)
 {
+
     testing::InitGoogleTest(&argc, argv);
     
     return RUN_ALL_TESTS();

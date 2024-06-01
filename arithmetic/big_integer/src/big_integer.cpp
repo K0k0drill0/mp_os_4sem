@@ -3,9 +3,285 @@
 #include <vector>
 #include <limits>
 #include <optional>
+#include <not_implemented.h>
 
 #include "big_integer.h"
-#define BASE_32 "4294967296"
+
+#pragma region multiplication
+
+big_integer &big_integer::trivial_multiplication::multiply(
+    big_integer &first_multiplier,
+    big_integer const &second_multiplier) const
+{
+    if (second_multiplier.is_equal_to_zero())
+    {
+        return first_multiplier = second_multiplier;
+    }
+    
+    if (first_multiplier.is_equal_to_zero())
+    {
+        return first_multiplier;
+    }
+    
+    if (second_multiplier.is_equal_to_one())
+    {
+        return first_multiplier;
+    }
+    
+    if (first_multiplier.is_equal_to_one())
+    {
+        return first_multiplier = second_multiplier;
+    }
+
+    if (first_multiplier.sign() == -1)
+    {
+        return multiply(first_multiplier.change_sign(), second_multiplier).change_sign();
+    }
+    
+    if (second_multiplier.sign() == -1)
+    {
+        return multiply(first_multiplier, -second_multiplier).change_sign();
+    }
+
+    auto first_value_digits_count = first_multiplier.get_digits_count();
+    auto second_value_digits_count = second_multiplier.get_digits_count();
+    auto max_digits_count = first_value_digits_count + second_value_digits_count;
+
+    int shift = sizeof(unsigned int) << 2;
+    int mask = (1 << shift) - 1;
+
+    std::vector<unsigned int> half_digits_first(2 * first_value_digits_count, 0);
+    std::vector<unsigned int> half_digits_second(2 * second_value_digits_count, 0);
+
+    std::vector<unsigned int> half_digits_res(2 * max_digits_count + 1, 0);
+
+    size_t pos_shift = 0;
+
+    for (int i = 0; i < first_value_digits_count; i++) { 
+        half_digits_first[2 * i] = first_multiplier.get_digit(i) & mask;
+        half_digits_first[2 * i+1] = first_multiplier.get_digit(i) >> shift;
+    }
+
+    for (int i = 0; i < second_value_digits_count; i++) { 
+        half_digits_second[2*i] = second_multiplier.get_digit(i) & mask;
+        half_digits_second[2*i+1] = second_multiplier.get_digit(i) >> shift;
+    }
+
+    for (int i = 0; i < half_digits_first.size(); i++) {
+        if (half_digits_first[i] == 0) {
+            pos_shift++;
+            continue;
+        }
+
+        size_t pos = 0;
+        unsigned int operation_result = 0;
+
+        for (int j = 0; j < half_digits_second.size(); j++) {
+            operation_result += half_digits_first[i] * half_digits_second[j] + half_digits_res[pos_shift + pos];
+            half_digits_res[pos_shift + pos++] = operation_result & mask;
+
+            operation_result >>= shift;
+        }
+
+        for (; operation_result && (pos_shift + pos) < half_digits_res.size(); ++pos) {
+            operation_result += half_digits_res[pos_shift + pos];
+            half_digits_res[pos_shift + pos++] = operation_result & mask;
+
+            operation_result >>= shift;
+        }
+
+        if (operation_result) {
+            throw std::logic_error("too much digits probably");
+        }
+
+        ++pos_shift;
+    }
+
+    std::vector<int> result_digits(max_digits_count);
+    
+    for (size_t i = 0; i < max_digits_count; ++i)
+    {
+        result_digits[i] = (half_digits_res[2*i + 1] << shift) + half_digits_res[2*i];
+    }
+    
+    remove_additional_zeroes(result_digits);
+
+    first_multiplier.clear();
+    first_multiplier.initialize_from(result_digits, result_digits.size());
+    
+    return first_multiplier;
+}
+
+big_integer &big_integer::Karatsuba_multiplication::multiply(
+    big_integer &first_multiplier,
+    big_integer const &second_multiplier) const
+{
+    throw not_implemented("big_integer &big_integer::Karatsuba_multiplication::multiply(big_integer &, big_integer const &)", "your code should be here...");
+}
+
+big_integer &big_integer::Schonhage_Strassen_multiplication::multiply(
+    big_integer &first_multiplier,
+    big_integer const &second_multiplier) const
+{
+    throw not_implemented("big_integer &big_integer::Schonhage_Strassen_multiplication::multiply(big_integer &, big_integer const &)", "your code should be here...");
+}
+
+#pragma endregion multiplication
+
+#pragma region division
+
+std::pair<std::optional<big_integer>, big_integer> big_integer::trivial_division::divide_with_remainder(
+    big_integer const &dividend,
+    big_integer const &divisor,
+    bool eval_quotient,
+    big_integer::multiplication_rule multiplication_rule) const
+{
+    if (divisor.is_equal_to_zero())
+    {
+        throw std::logic_error("attempt to divide by zero");
+    }
+    
+    if (dividend.is_equal_to_zero())
+    {
+        return std::make_pair(std::optional(big_integer(0)), big_integer(0));
+    }
+    
+    if (divisor._oldest_digit == 1 && divisor._other_digits == nullptr)
+    {
+        return std::make_pair(std::optional(dividend), big_integer(0));
+    }
+    
+    if (dividend.sign() == -1)
+    {
+        auto [quotient, remainder] = divide_with_remainder(-dividend, divisor, eval_quotient, multiplication_rule);
+        
+        if (quotient.has_value())
+        {
+            return std::make_pair(std::optional(-quotient.value()), -remainder);
+        }
+        else
+        {
+            return std::make_pair(std::optional<big_integer>(), -remainder);
+        }
+    }
+    
+    if (divisor.sign() == -1)
+    {
+        auto [quotient, remainder] = divide_with_remainder(dividend, -divisor, eval_quotient, multiplication_rule);
+        
+        if (quotient.has_value())
+        {
+            return std::make_pair(std::optional(-quotient.value()), -remainder);
+        }
+        else
+        {
+            return std::make_pair(std::optional<big_integer>(), -remainder);
+        }
+    }
+    
+    auto const dividend_digits_count = dividend.get_digits_count();
+    
+    std::vector<int> result_digits(1, 0);
+    big_integer minuend(std::vector<int> {0});
+    
+    for (size_t i = 0; i < dividend_digits_count; ++i)
+    {
+        unsigned int cur_digit = dividend.get_digit(dividend_digits_count - i - 1);
+        
+        // minuend *= (1 << (8 * sizeof(unsigned int)));
+        minuend <<= 8 * sizeof(unsigned int);
+        minuend += big_integer(std::vector<int>( {*reinterpret_cast<int *>(&cur_digit), 0} ));
+        
+        if (minuend < divisor)
+        {
+            result_digits.push_back(0);
+        }
+        else
+        {
+            unsigned int digit = 0;
+            big_integer subtrahend(std::vector<int> {0});
+            
+            for (unsigned int multiplier = 1 << (8*sizeof(unsigned int) - 1); multiplier > 0; multiplier >>= 1)
+            {
+                int multiplier_int = *reinterpret_cast<int *>(&multiplier);
+                big_integer tmp = divisor * big_integer(std::vector<int>( {multiplier_int, 0} ));
+                
+                if (minuend >= subtrahend + tmp)
+                {
+                    subtrahend += tmp;
+                    digit += multiplier;
+                }
+            }
+            
+            minuend -= subtrahend;
+            
+            if (eval_quotient)
+            {
+                result_digits.push_back(digit);
+            }
+        }
+    }
+    
+    if (eval_quotient)
+    {
+        std::reverse(result_digits.begin(), result_digits.end());
+        
+        return std::make_pair(std::optional(big_integer(result_digits)), minuend);
+    }
+    
+    return std::make_pair(std::optional<big_integer>(), minuend);
+}
+
+
+big_integer &big_integer::trivial_division::divide(
+    big_integer &dividend,
+    big_integer const &divisor,
+    big_integer::multiplication_rule multiplication_rule) const
+{
+    return dividend = divide_with_remainder(dividend, divisor, true, multiplication_rule).first.value();
+}
+
+big_integer &big_integer::trivial_division::modulo(
+    big_integer &dividend,
+    big_integer const &divisor,
+    big_integer::multiplication_rule multiplication_rule) const
+{
+    return dividend = divide_with_remainder(dividend, divisor, true, multiplication_rule).second;
+}
+
+big_integer &big_integer::Newton_division::divide(
+    big_integer &dividend,
+    big_integer const &divisor,
+    big_integer::multiplication_rule multiplication_rule) const
+{
+    throw not_implemented("big_integer &big_integer::Newton_division::divide(big_integer &, big_integer const &, big_integer::multiplication_rule)", "your code should be here...");
+}
+
+big_integer &big_integer::Newton_division::modulo(
+    big_integer &dividend,
+    big_integer const &divisor,
+    big_integer::multiplication_rule multiplication_rule) const
+{
+    throw not_implemented("big_integer &big_integer::Newton_division::modulo(big_integer &, big_integer const &, big_integer::multiplication_rule)", "your code should be here...");
+}
+
+big_integer &big_integer::Burnikel_Ziegler_division::divide(
+    big_integer &dividend,
+    big_integer const &divisor,
+    big_integer::multiplication_rule multiplication_rule) const
+{
+    throw not_implemented("big_integer &big_integer::Burnikel_Ziegler_division::divide(big_integer &, big_integer const &, big_integer::multiplication_rule)", "your code should be here...");
+}
+
+big_integer &big_integer::Burnikel_Ziegler_division::modulo(
+    big_integer &dividend,
+    big_integer const &divisor,
+    big_integer::multiplication_rule multiplication_rule) const
+{
+    throw not_implemented("big_integer &big_integer::Burnikel_Ziegler_division::modulo(big_integer &, big_integer const &, big_integer::multiplication_rule)", "your code should be here...");
+}
+
+#pragma endregion division
 
 void big_integer::clear()
 {
@@ -324,132 +600,6 @@ big_integer big_integer::operator+(
     return big_integer(*this) += other;
 }
 
-// big_integer &big_integer::operator-=( // TODO: implement
-//     big_integer const &other)
-// {
-//     std::cout << "its here\n";
-
-//     if (other.is_equal_to_zero()) {
-//         return *this;
-//     }
-
-//     if (is_equal_to_zero()) {
-//         return *this = other;
-//     }
-
-//     if (*this == other) { // * case a - a = 0
-//         big_integer tmp("0");
-
-//         clear();
-
-//         copy_from(tmp);
-
-//         return *this;
-//     }
-
-//     if (*this < other) {
-//         big_integer res(other);
-
-//         res -= *this;
-        
-//         res.change_sign();
-        
-//         clear();
-        
-//         copy_from(res);
-
-//         return *this;
-//     }
-
-//     if (sign() == -1 and other.sign() != -1) { // * case -a - b = -(a + b)
-//         this->change_sign();
-
-//         *this += other;
-
-//         this->change_sign();
-
-//         return *this;
-//     }
-
-//     if (this->sign() != -1 and other.sign() == -1) { // * case a - -b = a + b
-//         big_integer tmp(other);
-
-//         tmp.change_sign();
-
-//         *this += tmp;
-
-//         return *this;
-//     }
-
-//     if (sign() == -1 and other.sign() == -1) { //* case -a - -b = b - a
-//         change_sign();
-
-//         big_integer tmp(other);
-
-//         tmp.change_sign();
-
-//         tmp -= *this;
-
-//         clear();
-        
-//         copy_from(tmp);
-
-//         return *this;
-//     }
-
-//     int cnt1 = get_digits_count(), cnt2 = other.get_digits_count();
-
-//     int digits_count = std::max(cnt1, cnt2);
-
-//     std::vector <uint> result_digits(digits_count - 1);
-
-//     bool is_taken = false;
-//     for (int i = 0; i < digits_count - 1; ++i) {
-//         uint fi_dig = get_digit(i), se_dig = other.get_digit(i);
-//         if (is_taken) {
-//             fi_dig--;
-//         }
-
-//         if (fi_dig == se_dig) {
-//             result_digits[i] = 0;
-//             is_taken = false;
-//         } else {
-//             result_digits[i] = fi_dig - se_dig;
-//             if (fi_dig < se_dig) {
-//                 is_taken = true;
-//             } else {
-//                 is_taken = false;
-//             }
-//         }
-//     }
-
-//     int old_dig1 = _oldest_digit, old_dig2 = other._oldest_digit;
-
-//     if (is_taken and cnt1 > cnt2) {
-//         old_dig1--;
-//     } else if (cnt1 == cnt2 and is_taken) {
-//         old_dig1 -= (old_dig2 + 1);
-//     } else if (cnt1 == cnt2) {
-//         old_dig1 -= old_dig2;
-//     }
-
-//     // ?? clear 0 ????
-
-//     clear();
-
-//     _other_digits = nullptr;
-//     _oldest_digit = old_dig1;
-
-//     _other_digits = new uint[digits_count];
-//     *_other_digits = digits_count;
-
-//     for (auto i = 0; i < digits_count - 1; ++i) {
-//         _other_digits[i + 1] = result_digits[i];
-//     }
-
-//     return *this;
-// }
-
 big_integer &big_integer::operator-=(
     big_integer const &other)
 {
@@ -539,106 +689,7 @@ big_integer big_integer::operator-() const
 big_integer &big_integer::operator*=(
     big_integer const &other)
 {
-    if (other.is_equal_to_zero())
-    {
-        return *this = other;
-    }
-    
-    if (is_equal_to_zero())
-    {
-        return *this;
-    }
-    
-    if (other.is_equal_to_one())
-    {
-        return *this;
-    }
-    
-    if (is_equal_to_one())
-    {
-        return *this = other;
-    }
-    
-    if (sign() == -1)
-    {
-        return change_sign()
-                .operator*=(other)
-                .change_sign();
-    }
-    
-    if (other.sign() == -1)
-    {
-        return operator*=(-other)
-                .change_sign();
-    }
-
-    auto first_value_digits_count = get_digits_count();
-    auto second_value_digits_count = other.get_digits_count();
-    auto max_digits_count = first_value_digits_count + second_value_digits_count;
-
-    int shift = sizeof(unsigned int) << 2;
-    int mask = (1 << shift) - 1;
-
-    std::vector<unsigned int> half_digits_first(2 * first_value_digits_count, 0);
-    std::vector<unsigned int> half_digits_second(2 * second_value_digits_count, 0);
-
-    std::vector<unsigned int> half_digits_res(2 * max_digits_count + 1, 0);
-
-    size_t pos_shift = 0;
-
-    for (int i = 0; i < first_value_digits_count; i++) { 
-        half_digits_first[2 * i] = this->get_digit(i) & mask;
-        half_digits_first[2 * i+1] = this->get_digit(i) >> shift;
-    }
-
-    for (int i = 0; i < second_value_digits_count; i++) { 
-        half_digits_second[2*i] = other.get_digit(i) & mask;
-        half_digits_second[2*i+1] = other.get_digit(i) >> shift;
-    }
-
-    for (int i = 0; i < half_digits_first.size(); i++) {
-        if (half_digits_first[i] == 0) {
-            pos_shift++;
-            continue;
-        }
-
-        size_t pos = 0;
-        unsigned int operation_result = 0;
-
-        for (int j = 0; j < half_digits_second.size(); j++) {
-            operation_result += half_digits_first[i] * half_digits_second[j] + half_digits_res[pos_shift + pos];
-            half_digits_res[pos_shift + pos++] = operation_result & mask;
-
-            operation_result >>= shift;
-        }
-
-        for (; operation_result && (pos_shift + pos) < half_digits_res.size(); ++pos) {
-            operation_result += half_digits_res[pos_shift + pos];
-            half_digits_res[pos_shift + pos++] = operation_result & mask;
-
-            operation_result >>= shift;
-        }
-
-        if (operation_result) {
-            throw std::logic_error("too much digits probably");
-        }
-
-        ++pos_shift;
-    }
-
-    std::vector<int> result_digits(max_digits_count);
-    
-    for (size_t i = 0; i < max_digits_count; ++i)
-    {
-        result_digits[i] = (half_digits_res[2*i + 1] << shift) + half_digits_res[2*i];
-    }
-    
-    remove_additional_zeroes(result_digits);
-
-    clear();
-    initialize_from(result_digits, result_digits.size());
-    
-    return *this;
+    return trivial_multiplication().multiply(*this, other);
 }
 
 big_integer big_integer::operator*(
@@ -650,9 +701,7 @@ big_integer big_integer::operator*(
 big_integer &big_integer::operator/=(
     big_integer const &other)
 {
-    auto [quotient, remainder] = divide_with_remainder(*this, other, true);
-
-    return *this = quotient.value();    
+    return trivial_division().divide(*this, other, multiplication_rule::trivial);
 }
 
 big_integer big_integer::operator/(
@@ -1316,7 +1365,6 @@ std::pair<std::optional<big_integer>, big_integer> big_integer::divide_with_rema
     
     return std::make_pair(std::optional<big_integer>(), minuend);
 }
-
 
 
 

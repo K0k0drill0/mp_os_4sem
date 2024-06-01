@@ -10,6 +10,162 @@
 class big_integer final
 {
 
+public:
+    enum class multiplication_rule
+    {
+        trivial,
+        Karatsuba,
+        SchonhageStrassen
+    };
+
+private:
+    
+    class multiplication
+    {
+    
+    public:
+        
+        virtual ~multiplication() noexcept = default;
+    
+    public:
+        
+        virtual big_integer &multiply(
+            big_integer &first_multiplier,
+            big_integer const &second_multiplier) const = 0;
+        
+    };
+    
+    class trivial_multiplication final:
+        public multiplication
+    {
+    
+    public:
+        
+        big_integer &multiply(
+            big_integer &first_multiplier,
+            big_integer const &second_multiplier) const override;
+        
+    };
+    
+    class Karatsuba_multiplication final:
+        public multiplication
+    {
+
+    public:
+        
+        big_integer &multiply(
+            big_integer &first_multiplier,
+            big_integer const &second_multiplier) const override;
+        
+    };
+    
+    class Schonhage_Strassen_multiplication final:
+        public multiplication
+    {
+
+    public:
+        
+        big_integer &multiply(
+            big_integer &first_multiplier,
+            big_integer const &second_multiplier) const override;
+        
+    };
+
+public:
+    
+    enum class division_rule
+    {
+        trivial,
+        Newton,
+        BurnikelZiegler
+    };
+
+private:
+    
+    class division
+    {
+    
+    public:
+        
+        virtual ~division() noexcept = default;
+    
+    public:
+        
+        virtual big_integer &divide(
+            big_integer &dividend,
+            big_integer const &divisor,
+            big_integer::multiplication_rule multiplication_rule) const = 0;
+        
+        virtual big_integer &modulo(
+            big_integer &dividend,
+            big_integer const &divisor,
+            big_integer::multiplication_rule multiplication_rule) const = 0;
+        
+    };
+    
+    class trivial_division final:
+        public division
+    {
+    
+    public:
+    
+        big_integer &divide(
+            big_integer &dividend,
+            big_integer const &divisor,
+            big_integer::multiplication_rule multiplication_rule) const override;
+        
+        big_integer &modulo(
+            big_integer &dividend,
+            big_integer const &divisor,
+            big_integer::multiplication_rule multiplication_rule) const override;
+    
+    private:
+        
+        std::pair<std::optional<big_integer>, big_integer> divide_with_remainder(
+            big_integer const &dividend,
+            big_integer const &divisor,
+            bool eval_quotient,
+            big_integer::multiplication_rule multiplication_rule) const;
+    
+    
+    };
+    
+    class Newton_division final:
+        public division
+    {
+    
+    public:
+        
+        big_integer &divide(
+            big_integer &dividend,
+            big_integer const &divisor,
+            big_integer::multiplication_rule multiplication_rule) const override;
+        
+        big_integer &modulo(
+            big_integer &dividend,
+            big_integer const &divisor,
+            big_integer::multiplication_rule multiplication_rule) const override;
+        
+    };
+    
+    class Burnikel_Ziegler_division final:
+        public division
+    {
+    
+    public:
+        
+        big_integer &divide(
+            big_integer &dividend,
+            big_integer const &divisor,
+            big_integer::multiplication_rule multiplication_rule) const override;
+        
+        big_integer &modulo(
+            big_integer &dividend,
+            big_integer const &divisor,
+            big_integer::multiplication_rule multiplication_rule) const override;
+        
+    };
+
 private:
 
     void clear();
@@ -195,7 +351,7 @@ private:
     unsigned int char_to_int(char c);
 
 private:
-    void remove_additional_zeroes(std::vector<int> &digits);
+    static void remove_additional_zeroes(std::vector<int> &digits);
 
 private:
     std::string to_string() const ;
@@ -206,6 +362,44 @@ private:
     big_integer const &dividend,
     big_integer const &divisor,
     bool eval_quotient) const ;
+
+public:
+    
+    static big_integer &multiply(
+        big_integer &first_multiplier,
+        big_integer const &second_multiplier,
+        big_integer::multiplication_rule multiplication_rule = big_integer::multiplication_rule::trivial);
+
+    static big_integer multiply(
+        big_integer const &first_multiplier,
+        big_integer const &second_multiplier,
+        big_integer::multiplication_rule multiplication_rule = big_integer::multiplication_rule::trivial);
+
+    static big_integer &divide(
+        big_integer &dividend,
+        big_integer const &divisor,
+        big_integer::division_rule division_rule = big_integer::division_rule::trivial,
+        big_integer::multiplication_rule multiplication_rule = big_integer::multiplication_rule::trivial);
+
+    static big_integer divide(
+        big_integer const &dividend,
+        big_integer const &divisor,
+        big_integer::division_rule division_rule = big_integer::division_rule::trivial,
+        big_integer::multiplication_rule multiplication_rule = big_integer::multiplication_rule::trivial);
+
+    static big_integer &modulo(
+        big_integer &dividend,
+        big_integer const &divisor,
+        big_integer::division_rule division_rule = big_integer::division_rule::trivial,
+        big_integer::multiplication_rule multiplication_rule = big_integer::multiplication_rule::trivial);
+
+    static big_integer modulo(
+        big_integer const &dividend,
+        big_integer const &divisor,
+        big_integer::division_rule division_rule = big_integer::division_rule::trivial,
+        big_integer::multiplication_rule multiplication_rule = big_integer::multiplication_rule::trivial);
+    
+    #pragma endregion custom multiplication and division
 
 };
 

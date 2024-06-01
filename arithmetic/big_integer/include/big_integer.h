@@ -168,6 +168,9 @@ private:
 
 private:
 
+    void move_from(
+        big_integer &&other);
+
     void clear();
 
     void copy_from(
@@ -246,10 +249,16 @@ public:
 public:
 
     big_integer(
-        big_integer const &other);
+            big_integer const &other);
 
     big_integer &operator=(
-        big_integer const &other);
+            big_integer const &other);
+
+    big_integer(
+            big_integer &&other) noexcept;
+
+    big_integer &operator=(
+            big_integer &&other) noexcept;
 
     ~big_integer();
 

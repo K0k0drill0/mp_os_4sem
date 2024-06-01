@@ -143,12 +143,12 @@ std::pair<std::optional<big_integer>, big_integer> big_integer::trivial_division
     
     if (dividend.is_equal_to_zero())
     {
-        return std::make_pair(std::optional(big_integer(0)), big_integer(0));
+        return std::make_pair(std::optional(big_integer(std::vector<int> {0})), big_integer(std::vector<int> {0}));
     }
     
     if (divisor._oldest_digit == 1 && divisor._other_digits == nullptr)
     {
-        return std::make_pair(std::optional(dividend), big_integer(0));
+        return std::make_pair(std::optional(dividend), big_integer(std::vector<int> {0}));
     }
     
     if (dividend.sign() == -1)
@@ -282,6 +282,18 @@ big_integer &big_integer::Burnikel_Ziegler_division::modulo(
 }
 
 #pragma endregion division
+
+void big_integer::move_from(
+        big_integer &&other)
+{
+    _oldest_digit = other._oldest_digit;
+    _other_digits = other._other_digits;
+    // _allocator = other._allocator;
+
+    other._oldest_digit = 0;
+    other._other_digits = nullptr;
+    // other._allocator = nullptr;
+}
 
 void big_integer::clear()
 {
@@ -506,6 +518,24 @@ big_integer &big_integer::operator=(
     {
         clear();
         copy_from(other);
+    }
+
+    return *this;
+}
+
+big_integer::big_integer(
+        big_integer &&other) noexcept
+{
+    move_from(std::move(other));
+}
+
+big_integer &big_integer::operator=(
+        big_integer &&other) noexcept
+{
+    if (this != &other)
+    {
+        clear();
+        move_from(std::move(other));
     }
 
     return *this;

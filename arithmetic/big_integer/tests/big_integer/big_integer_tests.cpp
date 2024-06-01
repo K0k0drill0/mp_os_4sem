@@ -226,12 +226,12 @@ int main(
     char **argv)
 {
 
-    // big_integer num1(std::vector<int> {(1 << 31), 1});
-    // big_integer num2(std::vector<int> {0, 1});
+    big_integer a("-3");
+    big_integer b("-1");
 
-    // big_integer num3 = num1 - num2;
+    big_integer ans = a / b;
 
-    // std::cout << num3 << std::endl;
+    std::cout << ans << std::endl;
 
     testing::InitGoogleTest(&argc, argv);
     

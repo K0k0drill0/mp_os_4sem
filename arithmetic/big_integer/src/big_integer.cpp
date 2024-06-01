@@ -1035,9 +1035,9 @@ big_integer &big_integer::operator>>=(
     unsigned int shift_help = sizeof(unsigned int) << 2;
     unsigned int mask_help = (1 << shift) - 1;
 
-    for (int i = 0; i < 2 * this->get_digits_count(); i+=2) { 
-        half_digits[i] = this->get_digit(i) & mask_help;
-        half_digits[i+1] = this->get_digit(i) >> shift_help;
+    for (int i = 0; i < this->get_digits_count(); i++) { 
+        half_digits[2*i] = this->get_digit(i) & mask_help;
+        half_digits[2*i+1] = this->get_digit(i) >> shift_help;
     }
 
     int ind = 0;

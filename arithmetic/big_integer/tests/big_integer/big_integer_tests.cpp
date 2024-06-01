@@ -64,9 +64,12 @@ TEST(positive_tests, test2)
     
     big_integer bigint_1("32850346459076457453464575686784654");
     big_integer bigint_2("0000042353459649508756908790875309532245366457546765745645647567575");
-    
+
+
     big_integer result_of_sub = bigint_1 - bigint_2;
-    
+
+    // big_integer should_be("-42353459649508756908790875276681898907381089312281069960782921");
+
     std::stringstream ss;
     ss << result_of_sub;
     std::string result_string = ss.str();
@@ -222,6 +225,13 @@ int main(
     int argc,
     char **argv)
 {
+
+    // big_integer num1(std::vector<int> {(1 << 31), 1});
+    // big_integer num2(std::vector<int> {0, 1});
+
+    // big_integer num3 = num1 - num2;
+
+    // std::cout << num3 << std::endl;
 
     testing::InitGoogleTest(&argc, argv);
     

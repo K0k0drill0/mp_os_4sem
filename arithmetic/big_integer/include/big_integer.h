@@ -69,6 +69,8 @@ public:
 
     inline bool is_equal_to_zero() const noexcept;
 
+    inline bool is_equal_to_one() const noexcept;
+
     inline unsigned int get_digit(
         int position) const noexcept;
 
@@ -196,13 +198,14 @@ private:
     void remove_additional_zeroes(std::vector<int> &digits);
 
 private:
-    std::string to_string();
+    std::string to_string() const ;
+    std::string bigint_to_string(big_integer const value) const;
 
 private:
     std::pair<std::optional<big_integer>, big_integer> divide_with_remainder(
     big_integer const &dividend,
     big_integer const &divisor,
-    bool eval_quotient);
+    bool eval_quotient) const ;
 
 };
 

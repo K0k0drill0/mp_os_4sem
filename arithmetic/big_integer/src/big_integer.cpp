@@ -713,9 +713,7 @@ big_integer big_integer::operator/(
 big_integer &big_integer::operator%=(
     big_integer const &other)
 {
-    auto [quotient, remainder] = divide_with_remainder(*this, other, false);
-
-    return *this = remainder;
+    return trivial_division().modulo(*this, other, multiplication_rule::trivial);
 }
 
 big_integer big_integer::operator%(

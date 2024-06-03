@@ -7,6 +7,18 @@ class fraction final
 {
 
 private:
+    static big_integer gcd (big_integer a, big_integer b);
+    static big_integer lcm (big_integer a, big_integer b);
+    fraction& simplify();
+    static void make_same_denominator(fraction &a, fraction &b);
+    static int is_valid_eps(fraction const &eps);
+
+public:
+    int sign() const;
+    fraction& change_sign();
+    bool is_equal_to_zero() const;
+
+private:
 
     big_integer _numerator;
     big_integer _denominator;
@@ -16,6 +28,12 @@ public:
     fraction(
         big_integer &&numerator,
         big_integer &&denominator);
+
+    fraction(
+        big_integer &numerator,
+        big_integer &denominator);
+
+    fraction();
 
 public:
 
@@ -46,6 +64,8 @@ public:
 
     fraction operator-(
         fraction const &other) const;
+
+    fraction operator-() const;
 
     fraction &operator*=(
         fraction const &other);
@@ -92,6 +112,8 @@ public:
         fraction &obj);
 
 public:
+
+    fraction abs() const;
 
     fraction sin(
         fraction const &epsilon) const;

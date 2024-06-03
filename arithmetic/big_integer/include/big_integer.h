@@ -21,6 +21,7 @@ public:
 private:
     
     class multiplication
+
     {
     
     public:
@@ -188,6 +189,9 @@ private:
         std::string const &value,
         size_t base);
 
+    void initialize_from(
+        const int num); 
+
 private:
 
     static void print_byte(
@@ -245,6 +249,9 @@ public:
     big_integer(
         std::string const &value,
         size_t base = 10);
+
+    big_integer(
+        const int num);
 
 public:
 

@@ -43,6 +43,10 @@ big_integer &big_integer::trivial_multiplication::multiply(
         return multiply(first_multiplier, -second_multiplier).change_sign();
     }
 
+    if (second_multiplier._oldest_digit == -1 && second_multiplier._other_digits == nullptr) {
+        return (first_multiplier.change_sign());
+    }
+
     auto first_value_digits_count = first_multiplier.get_digits_count();
     auto second_value_digits_count = second_multiplier.get_digits_count();
     auto max_digits_count = first_value_digits_count + second_value_digits_count;
@@ -402,6 +406,13 @@ void big_integer::initialize_from(
     }
 }
 
+void big_integer::initialize_from(
+    const int num) 
+{
+    std::string st = std::to_string(num);
+    initialize_from(st, 10);
+}
+
 void big_integer::print_byte(
     std::ostream &stream,
     unsigned char byte_value)
@@ -450,7 +461,7 @@ inline int big_integer::sign() const noexcept
 
 inline bool big_integer::is_equal_to_zero() const noexcept
 {
-    return _oldest_digit == 0 && _other_digits == nullptr;
+    return ((_oldest_digit << 1) == 0) && _other_digits == nullptr;
 }
 
 inline bool big_integer::is_equal_to_one() const noexcept
@@ -503,6 +514,12 @@ big_integer::big_integer(
     size_t base)
 {
     initialize_from(value, base);
+}
+
+big_integer::big_integer(
+    const int num) 
+{
+    initialize_from(num);
 }
 
 big_integer::big_integer(
@@ -1248,6 +1265,10 @@ void big_integer::remove_additional_zeroes(std::vector<int> &digits) {
 
 std::string big_integer::to_string() const 
 {
+
+    if (this->is_equal_to_zero()) {
+        return std::string("0");
+    }
     std::string res;
     res.reserve(11 * get_digits_count());
 

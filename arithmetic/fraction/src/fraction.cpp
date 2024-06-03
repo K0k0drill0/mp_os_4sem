@@ -421,7 +421,21 @@ fraction fraction::cosec(
 fraction fraction::arcsin(
     fraction const &epsilon) const
 {
-    throw not_implemented("fraction fraction::arcsin(fraction const &) const", "your code should be here...");
+    if (*this < fraction(big_integer(-1), big_integer(1)) || *this > fraction(big_integer(1), big_integer(1))) {
+      throw std::logic_error("not in range of arcsin");
+    }
+
+    fraction result = *this;
+    fraction term = *this;
+    int n = 1;
+
+    while (term.abs() > epsilon) {
+        term = term * *this * *this * fraction(big_integer(n), big_integer(1)) / fraction(big_integer(n+1), big_integer(1)) / fraction(big_integer(n+2), big_integer(1));
+        result += term;
+        n+=2;
+    }
+
+    return result;
 }
 
 fraction fraction::arccos(
@@ -582,12 +596,3 @@ int fraction::is_valid_eps(fraction const &eps)
     return !((eps.sign() == -1) || eps.is_equal_to_zero());
 }
 
-// fraction calc_pi(fraction eps) {
-//     fraction x0(big_integer(3), big_integer(1));
-//     fraction x1 = x0;
-//     do {
-//         x0 = x1;
-//         x1 = x0 + (x0.cos(eps) + fraction(big_integer(1), big_integer(1)) / x0.sin(eps)); 
-//     } while ((x0 - x1).abs() > eps);
-//     return x1;
-// }

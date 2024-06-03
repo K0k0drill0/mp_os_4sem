@@ -39,7 +39,7 @@ int main(int argc,char *argv[])
     
 
     // fraction c = a.cos(eps);
-    cout << a.pow(3) << endl;
+    cout << a.arcsin(eps) << endl;
     
 
     return 0;

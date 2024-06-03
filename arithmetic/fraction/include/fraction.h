@@ -13,6 +13,9 @@ private:
     static void make_same_denominator(fraction &a, fraction &b);
     static int is_valid_eps(fraction const &eps);
 
+private:
+    static fraction get_pi();
+
 public:
     int sign() const;
     fraction& change_sign();
@@ -33,7 +36,14 @@ public:
         big_integer &numerator,
         big_integer &denominator);
 
+    fraction(
+        big_integer &numerator);
+
     fraction();
+
+    fraction(
+    int numerator,
+    int denominator);
 
 public:
 

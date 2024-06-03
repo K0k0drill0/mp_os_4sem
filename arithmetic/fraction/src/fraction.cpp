@@ -28,7 +28,28 @@ fraction::fraction(
     }
 
     this->simplify();    
-}     
+}    
+
+fraction::fraction(
+    big_integer &numerator):
+    _numerator(numerator),
+    _denominator(big_integer(1))
+{
+    
+}
+
+fraction::fraction(
+    int numerator,
+    int denominator = 1) :
+    _numerator(big_integer(numerator)),
+    _denominator(big_integer(denominator)) 
+{
+    if (_denominator == big_integer(0)) {
+        throw std::logic_error("zero division");
+    }
+
+    this->simplify();    
+}
 
 
 fraction::fraction() :
@@ -268,7 +289,7 @@ bool fraction::operator<(
     fraction const &other) const
 {
     if (this->sign() == -1 && other.sign() == -1) {
-        return (*this > other);
+        return (this->abs() > other.abs());
     } 
 
     if (this->sign() != other.sign()) {
@@ -377,9 +398,9 @@ fraction fraction::cos(
     int n = 1;
 
     while (term.abs() >= epsilon) {
-        std::cout << "res: " << result << std::endl;
+        // std::cout << "res: " << result << std::endl;
         term = -term * *this * *this / fraction(big_integer((n) * (n + 1)), big_integer(1));
-        std::cout << "term :" << term << std::endl << std::endl;
+        // std::cout << "term :" << term << std::endl << std::endl;
 
         result += term;
         n+=2;
@@ -439,54 +460,72 @@ fraction fraction::arcsin(
 }
 
 fraction fraction::arccos(
-    fraction const &epsilon) const
+    fraction const &epsilon) const //TODO
 {
-    throw not_implemented("fraction fraction::arccos(fraction const &) const", "your code should be here...");
+    if (*this < fraction(big_integer(-1), big_integer(1)) || *this > fraction(big_integer(1), big_integer(1))) {
+        throw std::logic_error("not in range of arccos");
+    }
+
+    fraction temp = ((fraction(big_integer(1), big_integer(1)) - (*this)) * fraction(big_integer(1), big_integer(2))).root(2, epsilon);
+    return fraction(big_integer(2), big_integer(1)) * (temp).arcsin(epsilon);
 }
 
 fraction fraction::arctg(
     fraction const &epsilon) const
 {
-    throw not_implemented("fraction fraction::arctg(fraction const &) const", "your code should be here...");
+    if (*this < fraction(big_integer(-1), big_integer(1)) || *this > fraction(big_integer(1), big_integer(1))) {
+      throw std::logic_error("not in range of arcsin");
+    }
+
+    fraction result = *this;
+    fraction term = *this;
+    int n = 1;
+
+    while (term.abs() > epsilon) {
+        big_integer num(2 * n + 1);
+        term = -term * *this * *this / fraction(num); //??
+        result += term;
+        n+=2;
+    }
+
+    return result;
 }
 
-fraction fraction::arcctg(
+fraction fraction::arcctg( // TODO
     fraction const &epsilon) const
 {
-    throw not_implemented("fraction fraction::arcctg(fraction const &) const", "your code should be here...");
+    throw not_implemented("oh no", "oh no");
 }
 
 fraction fraction::arcsec(
     fraction const &epsilon) const
 {
-    throw not_implemented("fraction fraction::arcsec(fraction const &) const", "your code should be here...");
+    return (fraction(1, 1) / (*this)).arccos(epsilon);
 }
 
 fraction fraction::arccosec(
     fraction const &epsilon) const
 {
-    throw not_implemented("fraction fraction::arccosec(fraction const &) const", "your code should be here...");
+    return (fraction(1, 1) / (*this)).arcsin(epsilon);
 }
 
 fraction fraction::pow(
     size_t degree) const
 {
+    // std::cout << *this << std::endl;
     if (degree == 0) {
         return fraction(big_integer(1), big_integer(1)); // Любое число в степени 0 равно 1
-    }
-    if (degree < 0) {
-        return fraction(big_integer(1), big_integer(1)) / this->pow(-degree); // Обратное значение для отрицательных степеней
     }
 
     fraction base(*this);
     fraction result(big_integer(1), big_integer(1));
     while (degree > 0) {
-    if (degree % 2 == 1) { // Если показатель степени нечетный
-        result *= base;
-        degree--;
-    }
-    base *= base; // Квадрат основания
-    degree /= 2; // Делим показатель степени пополам
+        if (degree % 2 == 1) { // Если показатель степени нечетный
+            result *= base;
+            degree--;
+        }   
+        base *= base; // Квадрат основания
+        degree /= 2; // Делим показатель степени пополам
     }
 
     return result;
@@ -496,7 +535,24 @@ fraction fraction::root(
     size_t degree,
     fraction const &epsilon) const
 {
-    throw not_implemented("fraction fraction::root(size_t, fraction const &) const", "your code should be here...");
+
+    fraction left = 0;
+    fraction right = *this;
+    fraction mid;
+
+    while (right - left > epsilon) {
+        mid = (left + right) / 2;
+        fraction pow_mid = mid.pow(degree);
+
+        if (pow_mid < *this) {
+            left = mid;
+        } else {
+            right = mid;
+        }
+    }
+
+    return (left + right) / fraction(big_integer(2), (1));
+    
 }
 
 fraction fraction::log2(
@@ -508,7 +564,27 @@ fraction fraction::log2(
 fraction fraction::ln(
     fraction const &epsilon) const
 {
-    throw not_implemented("fraction fraction::ln(fraction const &) const", "your code should be here...");
+    if (*this <= fraction(0, 1)) {
+        throw std::logic_error("log of negative value");
+    }
+
+    fraction log_value(*this);
+    fraction term(*this);
+    fraction x = (*this - fraction(1, 1)) / (*this + fraction(1, 1));
+    // fraction sign(1, 1);
+    // x -= fraction(1, 1);
+    int n = 1;
+    fraction x_pow = (*this);
+
+    while (term.abs() > epsilon) {
+        term =  (x - fraction(1, 1)).pow(n) / n;
+        log_value += term;
+        std::cout << log_value << std::endl;
+        sign *= fraction(-1, 1);
+        n++;
+    }
+
+    return log_value;
 }
 
 fraction fraction::lg(
@@ -596,3 +672,6 @@ int fraction::is_valid_eps(fraction const &eps)
     return !((eps.sign() == -1) || eps.is_equal_to_zero());
 }
 
+fraction fraction::get_pi() {
+    return fraction(104348/33215);
+}

@@ -6,17 +6,50 @@ using std::cout;
 using std::cin;
 using std::endl;
 
+// fraction calculate_pi(fraction epsilon) {
+//   fraction pi(0, 1);
+//   fraction sign(1, 1);
+//   int k = 1;
 
-// fraction calc_pi(fraction eps) {
-//     fraction x0 = fraction(big_integer(3), big_integer(1));
-//     fraction x1 = x0;
-//     do {
-//         x0 = x1;
-//         x1 = x0 + (x0.cos(eps) + fraction(big_integer(1), big_integer(1)) / x0.sin(eps)); 
-//     } while ((x0 - x1).abs() > eps);
-//     return x1;
+//   fraction sixteen_pow(16, 1);
+
+//   fraction prev_pi(pi);
+
+//   // Используем формулу Бэйли-Борвейна-Плаффа (BBP)
+//   do {
+//     fraction mult = fraction(4, 1) / fraction(big_integer(8 * k + 1), big_integer(1)) - fraction(2, 1) / fraction(big_integer(8 * k + 4), big_integer(1))
+//      - fraction(1, 1) / fraction(big_integer(8 * k + 5), big_integer(1)) - fraction(1, 1) / fraction(big_integer(8 * k + 6), big_integer(1));
+//     // ((4.0 / (8 * k + 1) - 2.0 / (8 * k + 4) - 1.0 / (8 * k + 5) - 1.0 / (8 * k + 6)));
+//     prev_pi = pi;
+//     pi += sign * mult;
+//     sign *= fraction(-1, 1);
+//     k++;
+//     sixteen_pow *= fraction(16, 1);
+//   } while ((pi - prev_pi).abs() > epsilon);
+
+//   return pi;
 // }
 
+fraction pi(fraction eps) {
+    fraction sum(0, 1);
+    fraction sign(1, 1);
+
+    int i = 1;
+    fraction term(1, 1);
+
+    while (term.abs() > eps) {
+        term = sign / (fraction(2*i + 1, 1));
+        sum += term;
+        sign *= fraction(-1, 1);
+        i++;
+    }
+
+    // for (int i = 0; i < n; ++i) {           
+    //     sum += sign/(2.0*i+1.0);
+    //     sign *= -1;
+    // }
+    return fraction(4, 1) * sum;
+}
 
 int main(int argc,char *argv[])
 {
@@ -32,14 +65,15 @@ int main(int argc,char *argv[])
 	
 
 
-    fraction a(big_integer(1), big_integer(3));
+    fraction a(big_integer(87), big_integer(32));
     // fraction b(big_integer(-0), big_integer(15));
 
-    fraction eps(big_integer(1), big_integer("1000000"));
+    fraction eps(big_integer(1), big_integer("10000"));
     
 
     // fraction c = a.cos(eps);
-    cout << a.arcsin(eps) << endl;
+    cout << a.ln(eps) << endl;
+    
     
 
     return 0;

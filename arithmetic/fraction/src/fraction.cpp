@@ -442,6 +442,7 @@ fraction fraction::cosec(
 fraction fraction::arcsin(
     fraction const &epsilon) const
 {
+
     if (*this < fraction(big_integer(-1), big_integer(1)) || *this > fraction(big_integer(1), big_integer(1))) {
       throw std::logic_error("not in range of arcsin");
     }
@@ -451,8 +452,10 @@ fraction fraction::arcsin(
     int n = 1;
 
     while (term.abs() > epsilon) {
+        term *= fraction(n, 1);
         term = term * *this * *this * fraction(big_integer(n), big_integer(1)) / fraction(big_integer(n+1), big_integer(1)) / fraction(big_integer(n+2), big_integer(1));
         result += term;
+        // std::cout << result << std::endl;
         n+=2;
     }
 
@@ -466,35 +469,28 @@ fraction fraction::arccos(
         throw std::logic_error("not in range of arccos");
     }
 
-    fraction temp = ((fraction(big_integer(1), big_integer(1)) - (*this)) * fraction(big_integer(1), big_integer(2))).root(2, epsilon);
-    return fraction(big_integer(2), big_integer(1)) * (temp).arcsin(epsilon);
+    fraction res = fraction(1, 1).arcsin(epsilon) - this->arcsin(epsilon);
+
+    return res;
 }
 
 fraction fraction::arctg(
     fraction const &epsilon) const
 {
-    if (*this < fraction(big_integer(-1), big_integer(1)) || *this > fraction(big_integer(1), big_integer(1))) {
-      throw std::logic_error("not in range of arcsin");
-    }
-
-    fraction result = *this;
-    fraction term = *this;
-    int n = 1;
-
-    while (term.abs() > epsilon) {
-        big_integer num(2 * n + 1);
-        term = -term * *this * *this / fraction(num); //??
-        result += term;
-        n+=2;
-    }
-
-    return result;
+    fraction num = fraction(*this);
+	fraction den_without_root = this->pow(2) + fraction(big_integer("1"), big_integer("1"));
+	fraction den = den_without_root.root(2, epsilon);
+	fraction drob = num / den;
+	fraction arcsin_value = drob.arcsin(epsilon);
+	return arcsin_value;
 }
 
 fraction fraction::arcctg( // TODO
     fraction const &epsilon) const
 {
-    throw not_implemented("oh no", "oh no");
+    fraction t = ((*this) * (*this) + fraction(1, 1));
+	fraction temp = (*this) * ((fraction(1, 1) / (t.root(2, epsilon))));
+    return temp.arccos(epsilon);
 }
 
 fraction fraction::arcsec(
@@ -558,7 +554,7 @@ fraction fraction::root(
 fraction fraction::log2(
     fraction const &epsilon) const
 {
-    throw not_implemented("fraction fraction::log2(fraction const &) const", "your code should be here...");
+    return (this->ln(epsilon) / fraction(2, 1).ln(epsilon));
 }
 
 fraction fraction::ln(
@@ -568,29 +564,26 @@ fraction fraction::ln(
         throw std::logic_error("log of negative value");
     }
 
-    fraction log_value(*this);
-    fraction term(*this);
+    fraction log_value(0, 1);
     fraction x = (*this - fraction(1, 1)) / (*this + fraction(1, 1));
-    // fraction sign(1, 1);
-    // x -= fraction(1, 1);
+    fraction term(x);
     int n = 1;
-    fraction x_pow = (*this);
+    fraction x_pow = x;
 
     while (term.abs() > epsilon) {
-        term =  (x - fraction(1, 1)).pow(n) / n;
+        term =  (x_pow) / fraction(2*n-1, 1);
         log_value += term;
-        std::cout << log_value << std::endl;
-        sign *= fraction(-1, 1);
         n++;
+        x_pow *= x.pow(2);
     }
 
-    return log_value;
+    return log_value * fraction(2, 1);
 }
 
 fraction fraction::lg(
     fraction const &epsilon) const
 {
-    throw not_implemented("fraction fraction::lg(fraction const &) const", "your code should be here...");
+    return (this->ln(epsilon) / fraction(10, 1).ln(epsilon));
 }
 
 big_integer fraction::gcd (big_integer a, big_integer b) {

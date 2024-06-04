@@ -1,2 +1,1 @@
-
-res_sin = 9541/29160
+8*math.atan(1/5) - math.atan(1/239)

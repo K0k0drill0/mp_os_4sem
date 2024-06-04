@@ -4,7 +4,8 @@
 
 allocator_buddies_system::~allocator_buddies_system()
 {
-    throw not_implemented("allocator_buddies_system::~allocator_buddies_system()", "your code should be here...");
+    allocator::destruct(&get_mutex(\
+    ))
 }
 
 allocator_buddies_system::allocator_buddies_system(

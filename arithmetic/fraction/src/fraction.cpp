@@ -7,8 +7,8 @@
 fraction::fraction(
     big_integer &&numerator,
     big_integer &&denominator):
-        _numerator(numerator),
-        _denominator(denominator)
+        _numerator(std::move(numerator)),
+        _denominator(std::move(denominator))
 {
     if (_denominator == big_integer(0)) {
         throw std::logic_error("zero division");
@@ -181,7 +181,7 @@ fraction fraction::operator-() const
     fraction cpy = *this * fraction(-1, 1);
     // fraction cpy = const_cast<fraction&>(*this).change_sign();
     // const_cast<fraction&>(*this).change_sign();
-    // return (cpy);
+    return (cpy);
 }
 
 fraction &fraction::operator*=(
@@ -339,23 +339,66 @@ std::istream &operator>>(
 	std::string a, b;
 	int i = 0;
 	stream >> s;
+    int is_drob = 0;
+    int is_dot = 0;
+    for(int i = 0; i < s.size(); ++i)
+    {
+        if(s[i] == '/')
+            is_drob++;
+        if (s[i] == '.')
+            is_dot++;
+    }
+    if(is_drob && is_dot || is_drob > 1 || is_dot > 1)
+        throw std::logic_error("some bullshit found");
+    
+    std::stringstream ss(s);
 
-	std::stringstream ss(s);
-
-	while (getline(ss, str, '/'))
-	{
-		if (i == 0)
-		{
-			a = str;
-		}
-		if (i == 1)
-		{
-			b = str;
-		}
-		++i;
-	}
-	obj = fraction(big_integer(a),big_integer(b));
-	return stream;
+    if(is_drob)
+    {
+        while (getline(ss, str, '/'))
+        {
+            if (i == 0)
+            {
+                a = str;
+            }
+            if (i == 1)
+            {
+                b = str;
+            }
+            ++i;
+        }
+        obj = fraction(big_integer(a),big_integer(b));
+        return stream;
+    }
+    else
+    {
+        getline(ss, str);
+        int cnt_drob = 0;
+        bool after_dot = false;
+        std::string numerator_str = "";
+        for(int i = 0; i < str.size(); ++i)
+        {
+            if(after_dot)
+            {
+                cnt_drob++;
+            }
+            if(str[i] == '.')
+            {
+                after_dot = true;
+            }
+            else
+                numerator_str += str[i];
+        }
+        big_integer denomerator = big_integer(1);
+        while(cnt_drob--)
+        {
+            denomerator *= 10;
+        }
+        big_integer numerator = big_integer(numerator_str);
+        obj = fraction(numerator, denomerator);
+        return stream;
+    }
+	
 }
 
 fraction fraction::abs() const

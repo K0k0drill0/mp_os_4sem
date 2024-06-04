@@ -20,7 +20,7 @@ public:
 
     void insert(tkey const &key, tvalue &&value) override;
 
-    tvalue const &obtain(tkey const &key) override;
+    tvalue &obtain(tkey const &key) override;
 
     tvalue dispose(tkey const &key) override;
 
@@ -69,7 +69,6 @@ public:
     public:
 
         explicit infix_const_iterator(typename search_tree<tkey, tvalue>::common_node *subtree_root);
-        infix_const_iterator(std::stack<std::pair<typename search_tree<tkey, tvalue>::common_node *, int>> &path);
 
     public:
 
@@ -242,12 +241,6 @@ b_tree<tkey, tvalue>::infix_const_iterator::infix_const_iterator(typename search
 {
 
 }
-template<typename tkey, typename tvalue>
-b_tree<tkey, tvalue>::infix_const_iterator::infix_const_iterator(std::stack<std::pair<typename search_tree<tkey, tvalue>::common_node *, int>> &path) :
-    _iterator(path)
-{
-
-}
 
 template<typename tkey, typename tvalue>
 bool b_tree<tkey, tvalue>::infix_const_iterator::operator==(b_tree::infix_const_iterator const &other) const noexcept
@@ -349,7 +342,7 @@ void b_tree<tkey, tvalue>::insert(tkey const &key, tvalue &&value)
 }
 
 template<typename tkey, typename tvalue>
-tvalue const &b_tree<tkey, tvalue>::obtain(tkey const &key)
+tvalue &b_tree<tkey, tvalue>::obtain(tkey const &key)
 {
     auto path = this->find_path(key);
     if (path.top().second < 0)
@@ -363,26 +356,28 @@ tvalue const &b_tree<tkey, tvalue>::obtain(tkey const &key)
 template<typename tkey, typename tvalue>
 tvalue b_tree<tkey, tvalue>::dispose(tkey const &key)
 {
-        auto path = this->find_path(key);
+    auto path = this->find_path(key);
     if (path.top().second < 0)
     {
         throw std::logic_error("key not found");
     }
+
     if ((*path.top().first)->subtrees[0] != nullptr)
     {
         auto non_terminal_node_with_key_found_info = path.top();
         path.pop();
         typename search_tree<tkey, tvalue>::common_node **iterator = non_terminal_node_with_key_found_info.first;
 
+        // TODO: configure this for min of right subtree
         while (*iterator != nullptr)
         {
-            auto idx = *iterator == *non_terminal_node_with_key_found_info.first
-                    ? non_terminal_node_with_key_found_info.second
-                    : (*iterator)->virtual_size;
+            auto index = *iterator == *non_terminal_node_with_key_found_info.first
+                ? non_terminal_node_with_key_found_info.second
+                : (*iterator)->virtual_size;
 
-            path.push(std::make_pair(iterator, -idx - 1));
+            path.push(std::make_pair(iterator, -index - 1));
 
-            iterator = (*iterator)->subtrees + idx;
+            iterator = (*iterator)->subtrees + index;
         }
 
         search_tree<tkey, tvalue>::swap(std::move((*non_terminal_node_with_key_found_info.first)->keys_and_values[non_terminal_node_with_key_found_info.second]), std::move((*path.top().first)->keys_and_values[(*path.top().first)->virtual_size - 1]));
@@ -426,13 +421,13 @@ tvalue b_tree<tkey, tvalue>::dispose(tkey const &key)
 
         bool const left_brother_exists = position != 0;
         bool const can_take_from_left_brother =
-                left_brother_exists &&
-                parent->subtrees[position - 1]->virtual_size > get_min_keys_count();
+            left_brother_exists &&
+            parent->subtrees[position - 1]->virtual_size > get_min_keys_count();
 
         bool const right_brother_exists = position != parent->virtual_size;
         bool const can_take_from_right_brother =
-                right_brother_exists &&
-                parent->subtrees[position + 1]->virtual_size > get_min_keys_count();
+            right_brother_exists &&
+            parent->subtrees[position + 1]->virtual_size > get_min_keys_count();
 
         if (can_take_from_left_brother)
         {
@@ -446,9 +441,9 @@ tvalue b_tree<tkey, tvalue>::dispose(tkey const &key)
             for (auto i = target_node->virtual_size - 1; i > 0; --i)
             {
                 search_tree<tkey, tvalue>::swap(std::move(target_node->keys_and_values[i]),
-                                                std::move(target_node->keys_and_values[i - 1]));
+                     std::move(target_node->keys_and_values[i - 1]));
 
-                search_tree<tkey, tvalue>::swap(std::move(target_node->subtrees[i]), std::move(target_node->subtrees[i - 1]));
+                search_tree<tkey, tvalue>::swap(std::move(target_node->subtrees[i + 1]), std::move(target_node->subtrees[i]));
             }
 
             allocator::destruct(left_brother->keys_and_values + --left_brother->virtual_size);
@@ -478,57 +473,92 @@ tvalue b_tree<tkey, tvalue>::dispose(tkey const &key)
             return value;
         }
 
-        this->merge_nodes(parent, position - (left_brother_exists
-                                              ? 1
-                                              : 0));
+        this->merge_nodes(parent, position - (left_brother_exists ? 1 : 0));
 
         target_node = parent;
     }
 }
 
-template<
-    typename tkey,
-    typename tvalue>
-std::vector<typename associative_container<tkey, tvalue>::key_value_pair> b_tree<tkey, tvalue>::obtain_between(
-    tkey const &lower_bound,
-    tkey const &upper_bound,
-    bool lower_bound_inclusive,
-    bool upper_bound_inclusive)
-{        
+template<typename tkey, typename tvalue>
+std::vector<typename associative_container<tkey, tvalue>::key_value_pair> b_tree<tkey, tvalue>::obtain_between(tkey const &lower_bound, tkey const &upper_bound, bool lower_bound_inclusive, bool upper_bound_inclusive)
+{
     std::vector<typename associative_container<tkey, tvalue>::key_value_pair> range;
-    std::stack<std::pair<typename search_tree<tkey, tvalue>::common_node *, int>> path;
-    int index = 0;
-    auto *current_node  = reinterpret_cast<typename search_tree<tkey, tvalue>::common_node*>(this->_root);
-    while (true)
-    {
-        path.push(std::make_pair(current_node, 0));
-        index = this->node_find_path(current_node, lower_bound, 0, current_node->virtual_size - 1);
-        if (index >= 0)
-        {
-            break;
-        }
-        if (current_node->subtrees[0] == nullptr)
-        {
-            index = index == -1 ? 0 : - index - 2;
-            break;
-        }
-        current_node = current_node->subtrees[-index - 1];
-    }
-    path.top().second = index;
-    b_tree<tkey,tvalue>::infix_const_iterator iter(path);
-    auto a = *iter;
 
-    if (this->_keys_comparer(current_node->keys_and_values[index].key, lower_bound) < 0)
+    std::stack<std::pair<typename search_tree<tkey, tvalue>::common_node *, int>> path;
+
+    int index = -1;
+    if (this->_root == nullptr)
     {
-        ++iter;
+        path.push(std::make_pair(this->_root, index));
     }
-    while (this->_keys_comparer(std::get<2>(*iter), upper_bound) <= 0)
+
+    typename search_tree<tkey, tvalue>::common_node **iterator = &(this->_root);
+    while (*iterator != nullptr && index < 0)
+    {   
+        size_t left_bound_inclusive = 0;
+        size_t right_bound_inclusive = (*iterator)->virtual_size - 1;
+        
+        bool found = true;
+        while (true)
+        {
+            index = (left_bound_inclusive + right_bound_inclusive) / 2;
+            auto comparison_result = this->_keys_comparer(lower_bound, (*iterator)->keys_and_values[index].key);
+            if (comparison_result == 0)
+            {
+                if (!lower_bound_inclusive)
+                {
+                    index = index + 1 == (*iterator)->virtual_size 
+                        ? -(index + (comparison_result < 0 ? 0 : 1) + 1)
+                        : index + 1;
+
+                }
+                break;
+            }
+
+            if (left_bound_inclusive == right_bound_inclusive)
+            {
+                found = false;
+                index = -(index + (comparison_result < 0 ? 0 : 1) + 1);
+                break;
+            }
+
+            if (comparison_result < 0)
+            {
+                right_bound_inclusive = index;
+            }
+            else
+            {
+                left_bound_inclusive = index + 1;
+            }
+        }
+
+        path.push(std::make_pair(*iterator, index < 0 ? -index - 1 : index));
+
+        if (found)
+        {
+            break;
+        }
+
+        if (index < 0)
+        {
+            iterator = (*iterator)->subtrees - index - 1;    
+        }
+        
+        if (*iterator == nullptr && this->_keys_comparer((path.top().first)->keys_and_values[index].key, upper_bound) < (lower_bound_inclusive ? 0 : 1))
+        {
+            path = std::move(std::stack<std::pair<typename search_tree<tkey, tvalue>::common_node *, int>>());
+        }
+    }
+    
+    auto it = infix_iterator(path);
+    while (it != this->end_infix() && this->_keys_comparer(upper_bound, std::get<2>(*it)) > (upper_bound_inclusive ? -1 : 0))
     {
-        range.push_back(typename associative_container<tkey, tvalue>::key_value_pair(std::get<2>(*iter), std::get<3>(*iter)));
-        ++iter;
+        range.push_back(std::move(typename associative_container<tkey, tvalue>::key_value_pair(std::get<2>(*it), std::get<3>(*it))));
+        ++it; 
     }
+
     return range;
-}
+}   
 
 template<typename tkey, typename tvalue>
 typename b_tree<tkey, tvalue>::infix_iterator b_tree<tkey, tvalue>::begin_infix() const noexcept

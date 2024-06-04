@@ -178,9 +178,10 @@ fraction fraction::operator-(
 
 fraction fraction::operator-() const
 {
-    fraction cpy = const_cast<fraction&>(*this).change_sign();
-    const_cast<fraction&>(*this).change_sign();
-    return (cpy);
+    fraction cpy = *this * fraction(-1, 1);
+    // fraction cpy = const_cast<fraction&>(*this).change_sign();
+    // const_cast<fraction&>(*this).change_sign();
+    // return (cpy);
 }
 
 fraction &fraction::operator*=(
@@ -359,7 +360,7 @@ std::istream &operator>>(
 
 fraction fraction::abs() const
 {
-    if (this->sign() == 1) {
+    if (this->sign() >= 0) {
         return *this;
     }
     fraction tmp(*this);

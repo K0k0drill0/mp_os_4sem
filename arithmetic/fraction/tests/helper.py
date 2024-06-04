@@ -43,6 +43,6 @@ exp_pi = math.pi
 print("exp_pi = ", exp_pi)
 
 print("exp_res = ", (16* math.atan(1/5) - math.atan(1/239)))
-print("some_res = ", 987369628351168221742967901301653504/3068808287610009340583093095085640625)
+print("some_res = ", 1022870150908455051153326615965531029/577487253982832674312606596800184320)
 
 print("exp_other= ", math.atan(num))

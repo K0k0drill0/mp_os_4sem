@@ -65,14 +65,14 @@ int main(int argc,char *argv[])
 	
 
 
-    fraction a(big_integer(1), big_integer(3));
+    fraction a(big_integer(0), big_integer(32));
     // fraction b(big_integer(-0), big_integer(15));
 
-    fraction eps(big_integer(1), big_integer("10000"));
+    fraction eps(big_integer(1), big_integer("1000000"));
     
 
     // fraction c = a.cos(eps);
-    cout << a.arctg(eps) << endl;
+    cout << fraction(0, 1).lg(eps) / fraction(3, 1).lg(eps) << endl;
     
     // cout << (fraction(1, 1).arcsin(eps)) << endl;
 

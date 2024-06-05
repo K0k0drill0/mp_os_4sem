@@ -27,7 +27,7 @@ public:
         allocator_sorted_list const &other);
     
     allocator_sorted_list &operator=(
-        allocator_sorted_list const &other);
+        allocator_sorted_list const &other) = delete;
     
     allocator_sorted_list(
         allocator_sorted_list &&other) noexcept;
@@ -57,6 +57,8 @@ public:
     inline void set_fit_mode(
         allocator_with_fit_mode::fit_mode mode) override;
 
+    inline allocator_with_fit_mode::fit_mode get_fit_mode();
+
 private:
     
     inline allocator *get_allocator() const override;
@@ -72,7 +74,20 @@ private:
 private:
     
     inline std::string get_typename() const noexcept override;
-    
+
+    void * get_first_available_block() const noexcept;
+    allocator::block_size_t get_available_block_size(void *block_address) const noexcept;
+    void * get_available_block_next_block_address(void *block_address) const noexcept;
+    allocator::block_size_t get_occupied_block_size(void *block_address) const noexcept;
+    void * find_block(allocator_with_fit_mode::fit_mode fit_mode, size_t requested_size);
+    void set_first_available_block(void * first_available_block) const noexcept;
+    void * get_first_block() const noexcept;
+    void clear_available_block(void * block) const noexcept;
+    void merge_blocks(void * first, int type, void * second) noexcept;
+    allocator * get_occupied_block_allocator(void * block) const noexcept;
+    void print_blocks_info(std::vector<allocator_test_utils::block_info> blocks_info) const noexcept;
+    std::string get_block_info(void * block) const noexcept;
+    std::mutex & get_mutex() const noexcept;
 };
 
 #endif //MATH_PRACTICE_AND_OPERATING_SYSTEMS_ALLOCATOR_ALLOCATOR_SORTED_LIST_H

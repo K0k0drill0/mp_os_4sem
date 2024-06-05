@@ -6,10 +6,13 @@
 #include <logger.h>
 #include <logger_builder.h>
 
+using std::cout;
+using std::endl;
+
 logger *create_logger(
     std::vector<std::pair<std::string, logger::severity>> const &output_file_streams_setup,
     bool use_console_stream = true,
-    logger::severity console_stream_severity = logger::severity::debug)
+    logger::severity console_stream_severity = logger::severity::critical)
 {
     logger_builder *logger_builder_instance = new client_logger_builder;
     
@@ -99,6 +102,13 @@ TEST(positiveTests, test3)
     allocator_instance->deallocate(first_block);
     
     auto actual_blocks_state = dynamic_cast<allocator_test_utils *>(allocator_instance)->get_blocks_info();
+    
+    cout << actual_blocks_state.size() << ' ' << 3 <<  endl;
+    cout << actual_blocks_state[0].block_size << ' ' << (static_cast<int>(std::floor(std::log2(sizeof(allocator::block_pointer_t) * 2 + 1))) + 1) << endl; 
+    cout << actual_blocks_state[0].is_block_occupied << ' ' << false << endl;
+    cout << actual_blocks_state[0].block_size <<  ' ' << actual_blocks_state[1].block_size << endl;
+    cout << actual_blocks_state[1].is_block_occupied << ' ' << true << endl;
+    
     ASSERT_EQ(actual_blocks_state.size(), 3);
     ASSERT_EQ(actual_blocks_state[0].block_size, 1 << (static_cast<int>(std::floor(std::log2(sizeof(allocator::block_pointer_t) * 2 + 1))) + 1));
     ASSERT_EQ(actual_blocks_state[0].is_block_occupied, false);
